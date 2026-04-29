@@ -3,11 +3,16 @@ import { Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { LoaderCircle, ArrowRight } from "lucide-react";
+import { user_Service } from "../API/API";
+import { UseAppData } from "../context/AppContext";
+import Loading from "../components/Loading";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const { isAuth, loading: userLoading } = UseAppData();
 
   const handleSubmit = async (
     e: React.SubmitEvent<HTMLFormElement>,
@@ -16,19 +21,21 @@ const Login = () => {
     setLoading(true);
     try {
       const { data } = await axios.post(
-        `http://localhost:5000/api/v1/user/loginUser`,
+        `${user_Service}/api/v1/user/loginUser`,
         {
           email,
         },
       );
-      alert(data.message);
-      navigate(`/verify?email=${email}`)
+      toast.success(data.message);
+      navigate(`/verify?email=${email}`);
     } catch (error: any) {
-      alert(error.response.data.message);
+      toast.error(error.response.data.message);
     } finally {
       setLoading(false);
     }
   };
+  if (userLoading) return <Loading />;
+  if (isAuth) navigate("/");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-900">
@@ -38,7 +45,9 @@ const Login = () => {
             <div className="mx-auto w-20 h-20 bg-blue-500 rounded-lg flex justify-center items-center mb-6">
               <Mail size={40} className="text-white" />
             </div>
-            <h2 className="text-4xl text-white font-semibold">Welcome to Chat App</h2>
+            <h2 className="text-4xl text-white font-semibold">
+              Welcome to Chat App
+            </h2>
             <p className="text-gray-300 mt-2">
               The best place to connect with friends and family
             </p>
@@ -76,7 +85,7 @@ const Login = () => {
               ) : (
                 <div className="flex items-center justify-center gap-2">
                   <span>Send OTP</span>
-                  <ArrowRight className="w-5 h-5"/>
+                  <ArrowRight className="w-5 h-5" />
                 </div>
               )}
             </button>
