@@ -82,12 +82,17 @@ export const AppProvider: React.FC<AppProviderProp> = ({ children }) => {
 
   async function LogoutUser() {
     Cookies.remove("token");
+    setIsAuth(false);
+    setUser(null);
     toast.success("User logged out.");
   }
 
   const [chats, setChats] = useState<Chats[] | null>(null);
   async function fetchChats() {
     const token = Cookies.get("token");
+    if (!token) {
+      return;
+    }
     try {
       const { data } = await axios.get(
         `${chat_Services}/api/v1/chat/allChats`,
@@ -119,9 +124,13 @@ export const AppProvider: React.FC<AppProviderProp> = ({ children }) => {
   }
   useEffect(() => {
     fetchUser();
-    fetchChats();
-    fetchUsers();
   }, []);
+  useEffect(() => {
+    if (isAuth) {
+      fetchChats();
+      fetchUsers();
+    }
+  }, [isAuth]);
   return (
     <AppContext.Provider
       value={{
