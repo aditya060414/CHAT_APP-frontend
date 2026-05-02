@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import type { User } from "../context/AppContext";
+
 import {
   UserRound,
   X,
@@ -20,6 +21,7 @@ interface ChatSidebarProps {
   selectedUser: string | null;
   setSelectedUser: (userId: string | null) => void;
   handleLogout: () => void;
+  createChat: (u: User) => void;
   toggleChats: string;
   setToggleChats: React.Dispatch<React.SetStateAction<string>>;
 }
@@ -35,8 +37,10 @@ const ChatSidebar = ({
   selectedUser,
   setSelectedUser,
   handleLogout,
+  createChat,
 }: ChatSidebarProps) => {
   const [searchQuery, setSearchQuery] = useState("");
+
   return (
     <aside>
       <div
@@ -44,7 +48,7 @@ const ChatSidebar = ({
       >
         {/* header */}
         <div
-          className={`flex relative border-b-gray-400 py-6 px-2 gap-4 border-b border-gray-900 justify-center items-center`}
+          className={`flex relative py-6 px-2 gap-4 justify-center items-center`}
         >
           <div
             className={`w-12 h-12 rounded-full bg-transparent flex justify-center items-center border border-gray-700`}
@@ -89,7 +93,7 @@ const ChatSidebar = ({
             )}
           </div>
           {searchQuery && (
-            <div className="absolute top-full mt-2 w-84 h-12 max-h-60 overflow-y-auto bg-gray-800 rounded-lg shadow-lg z-30">
+            <div className="absolute top-full mt-2 w-84 max-h-60 overflow-y-auto bg-gray-800 rounded-lg shadow-lg z-30 flex flex-col">
               {users
                 ?.filter(
                   (u) =>
@@ -97,8 +101,15 @@ const ChatSidebar = ({
                     u.name.toLowerCase().includes(searchQuery.toLowerCase()),
                 )
                 .map((u) => (
-                  <button key={u._id} className="cursor-pointer">
-                    <div className="flex flex-1 relative p-3 gap-4">
+                  <button
+                    key={u._id}
+                    className="cursor-pointer w-full text-left hover:bg-gray-700 transition-colors"
+                    onClick={() => {
+                      createChat(u);
+                      setSearchQuery("");
+                    }}
+                  >
+                    <div className="flex flex-1 relative p-3 gap-4 items-center">
                       <div className="relative items-center">
                         <UserCircle size={30} />
                       </div>
@@ -179,7 +190,9 @@ const ChatSidebar = ({
                             <span className="text-sm text-gray-400 truncate">
                               {latestMessage?.text
                                 ? latestMessage.text
-                                : "image"}
+                                : latestMessage.image
+                                  ? "image"
+                                  : ""}
                             </span>
                           </div>
                         </div>
@@ -235,7 +248,10 @@ const ChatSidebar = ({
                 </button>
               </div>
               <div className="flex w-8 h-8 rounded-full items-center justify-center">
-                <button className="cursor-pointer hover:text-red-500" onClick={handleLogout}>
+                <button
+                  className="cursor-pointer hover:text-red-500"
+                  onClick={handleLogout}
+                >
                   <LogOut />
                 </button>
               </div>
