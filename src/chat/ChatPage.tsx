@@ -3,7 +3,10 @@ import { UseAppData, type User } from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
 import Loading from "../components/Loading";
 import ChatSidebar from "../components/ChatSidebar";
-
+import { chat_Services } from "../API/API";
+import axios from "axios";
+import Cookies from "js-cookie";
+import toast from "react-hot-toast";
 export interface Message {
   chatId: string;
   sender: string;
@@ -49,22 +52,57 @@ const ChatPage = () => {
 
   const handleLogout = () => LogoutUser();
 
+  const handleCreateChat = async (u: User) => {
+    const token = Cookies.get("token");
+    try {
+      const { data } = await axios.post(
+        `${chat_Services}/api/v1/chat/new`,
+        {
+          userId: loggedInUser?._id,
+          otherUserId: u._id,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      setSelectedUser(data.chatId);
+      await fetchChats();
+      toast.success("User added to chat.");
+    } catch (error) {
+      toast.error("Failed to add user to chat.");
+    }
+  };
+
   if (loading) return <Loading />;
   return (
     <>
-      <div className="min-h-screen bg-gray-800 text-white relative overflow-hidden">
-        <ChatSidebar
-          isModal={isModal}
-          setIsModal={setIsModal}
-          toggleChats={toggleChats}
-          setToggleChats={setToggleChats}
-          users={users}
-          loggedInUser={loggedInUser}
-          chats={chats}
-          selectedUser={selectedUser}
-          setSelectedUser={setSelectedUser}
-          handleLogout={handleLogout}
-        />
+      <div className="min-h-screen bg-gray-800 text-white flex overflow-hidden">
+        <div className="w-[30%] min-w-[280px] max-w-[384px]">
+          {
+            <ChatSidebar
+              isModal={isModal}
+              setIsModal={setIsModal}
+              toggleChats={toggleChats}
+              setToggleChats={setToggleChats}
+              users={users}
+              loggedInUser={loggedInUser}
+              chats={chats}
+              selectedUser={selectedUser}
+              setSelectedUser={setSelectedUser}
+              handleLogout={handleLogout}
+              createChat={handleCreateChat}
+            />
+          }
+        </div>
+        {/* selected chat after click */}
+        <div className="flex flex-1 flex-col bg-[oklch(21%_0.034_264.660)]">
+          {/* headerr */}
+          <div className="flex relative p-2 top-0 w-full bg-transparent h-24 border-b border-[oklch(28.2%_0.091_267.935)] justify-center">
+            <div></div>
+          </div>
+        </div>
       </div>
     </>
   );
