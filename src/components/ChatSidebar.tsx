@@ -6,6 +6,9 @@ import {
   MessageCirclePlus,
   Search,
   UserCircle,
+  LogOut,
+  Settings,
+  MessageCircle,
 } from "lucide-react";
 
 interface ChatSidebarProps {
@@ -86,7 +89,7 @@ const ChatSidebar = ({
             )}
           </div>
           {searchQuery && (
-            <div className="absolute top-full mt-2 w-84 h-14 max-h-60 overflow-y-auto bg-gray-800 rounded-lg shadow-lg z-30">
+            <div className="absolute top-full mt-2 w-84 h-12 max-h-60 overflow-y-auto bg-gray-800 rounded-lg shadow-lg z-30">
               {users
                 ?.filter(
                   (u) =>
@@ -120,18 +123,18 @@ const ChatSidebar = ({
             </button>
           </div>
         </div>
-        {/* content */}
-        <div className="flex flex-col pt-3 pl-4">
-          <span className="text-lg text-slate-400 font-medium">Recents</span>
+        {/* content- RECENT */}
+        <div className="flex flex-col pt-3 pl-4 overfloy-y-auto flex-1">
+          <span className="text-lg text-slate-400 font-medium">Chats</span>
           {/* show all users */}
 
           {chats && chats.length > 0 ? (
             <div className="flex flex-col h-full overflow-y-auto">
               {chats.map((chat) => {
-                const latestMessage = chat.latestMessage;
-                const isSelected = selectedUser === chat._id;
+                const latestMessage = chat.chat.latestMessage;
+                const isSelected = selectedUser === chat.chat._id;
                 const isSentByMe = latestMessage.sender === loggedInUser?._id;
-                const unseenCount = chat.unseenCount;
+                const unseenCount = chat.chat.unseenCount;
                 const formatTime = (timestamp: string) => {
                   const now = new Date();
                   const past = new Date(timestamp);
@@ -151,9 +154,9 @@ const ChatSidebar = ({
                 };
                 return (
                   <button
-                    key={chat._id}
+                    key={chat.chat._id}
                     onClick={() => {
-                      setSelectedUser(chat._id);
+                      setSelectedUser(chat.chat._id);
                     }}
                   >
                     <div
@@ -171,7 +174,7 @@ const ChatSidebar = ({
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col">
                             <span className="text-xl font-medium truncate">
-                              {chat.name}
+                              {chat.user.user.name}
                             </span>
                             <span className="text-sm text-gray-400 truncate">
                               {latestMessage?.text
@@ -185,7 +188,7 @@ const ChatSidebar = ({
                           <div className="flex relative bottom-2">
                             <span className="text-[oklch(70.7%_0.165_254.624)] text-xs">
                               {unseenCount > 0
-                                ? formatTime(chat.updatedAt)
+                                ? formatTime(chat.chat.updatedAt)
                                 : ""}
                             </span>
                           </div>
@@ -204,8 +207,40 @@ const ChatSidebar = ({
               })}
             </div>
           ) : (
-            <div></div>
+            <div className="flex flex-col flex-1 gap-1 mt-20 items-center">
+              <div className="w-24 h-24 bg-gray-700 text-gray-300 flex rounded-full justify-center items-center">
+                <MessageCircle size={56} />
+              </div>
+              <div className="flex flex-col justify-center items-center">
+                <p className="text-gray-300">No chats available right now.</p>
+                <p className="text-gray-500">
+                  Start a new conversation and connect with others.
+                </p>
+              </div>
+            </div>
           )}
+        </div>
+        {/* Footer */}
+        <div className="border-t border-gray-500 p-4">
+          <div className="flex relative justify-between">
+            <div className="h-6 w-6">
+              <button className="cursor-pointer">
+                <UserCircle size={24} />
+              </button>
+            </div>
+            <div className="flex relative gap-5 justify-center items-center">
+              <div className="flex w-8 h-8 rounded-full items-center justify-center">
+                <button className="cursor-pointer hover:text-[oklch(37.9%_0.146_265.522)]">
+                  <Settings />
+                </button>
+              </div>
+              <div className="flex w-8 h-8 rounded-full items-center justify-center">
+                <button className="cursor-pointer hover:text-red-500" onClick={handleLogout}>
+                  <LogOut />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </aside>
