@@ -47,7 +47,7 @@ const ChatPage = () => {
     }
   }, [loading, isAuth, navigate]);
 
-  const handleLogout = () => LogoutUser;
+  const handleLogout = () => LogoutUser();
 
   if (loading) return <Loading />;
   return (
