@@ -42,58 +42,55 @@ const ChatSidebar = ({
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <aside>
+    <aside className="h-full">
       <div
-        className={`fixed z-20 sm:static top-0 left-0 h-screen w-96 bg-gray-900 border-r border-gray-600 transform ${isModal ? "translate-x-0" : "-translate-x-full"} sm:translate-x-0 transition-transform duration-300 flex flex-col`}
+        className={`fixed z-20 sm:static top-0 left-0 h-full w-[300px] sm:w-full bg-[#13161f] border-r border-[#1f2230] transform ${isModal ? "translate-x-0" : "-translate-x-full"} sm:translate-x-0 transition-transform duration-300 flex flex-col text-gray-100`}
       >
         {/* header */}
-        <div
-          className={`flex relative py-6 px-2 gap-4 justify-center items-center`}
-        >
-          <div
-            className={`w-12 h-12 rounded-full bg-transparent flex justify-center items-center border border-gray-700`}
-          >
+        <div className="flex relative py-6 px-4 gap-4 justify-center items-center border-b border-[#1f2230]">
+          <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex justify-center items-center border border-indigo-500/30 flex-shrink-0">
             <UserRound size={24} />
           </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-semibold">username</span>
-            <span className="text-sm font-mono">Online</span>
+          <div className="flex flex-col flex-1 min-w-0">
+            <span className="text-lg font-semibold truncate">{loggedInUser?.name || "Username"}</span>
+            <span className="text-xs text-indigo-400 font-medium">Online</span>
           </div>
-          <div className="flex justify-end mb-0 ml-auto gap-5">
-            <button className="flex bg-gray-700 w-10 h-10 justify-center items-center rounded-lg hover:bg-green-600 cursor-pointer">
-              <MessageCirclePlus size={30} />
+          <div className="flex justify-end gap-2 flex-shrink-0">
+            <button className="flex bg-[#0f1117] w-10 h-10 justify-center items-center rounded-lg hover:bg-[#4f46e5] text-gray-400 hover:text-white transition-colors border border-[#1f2230]">
+              <MessageCirclePlus size={20} />
             </button>
             <button
-              className="sm:hidden flex bg-gray-700 w-10 h-10 justify-center items-center rounded-lg hover:bg-red-600 cursor-pointer"
+              className="sm:hidden flex bg-[#0f1117] w-10 h-10 justify-center items-center rounded-lg hover:bg-red-600 text-gray-400 hover:text-white transition-colors border border-[#1f2230]"
               onClick={() => setIsModal(false)}
             >
-              <X size={30} />
+              <X size={20} />
             </button>
           </div>
         </div>
+
         {/* search bar, chats, and all users*/}
-        <div className="flex flex-col relative justify-center items-center ">
-          <div className="flex relative p-4 w-92 justify-center items-center ">
-            <Search className="absolute left-6 text-gray-400" size={18} />
+        <div className="flex flex-col relative w-full border-b border-[#1f2230] pb-4">
+          <div className="flex relative p-4 w-full justify-center items-center">
+            <Search className="absolute left-7 text-gray-500" size={18} />
             <input
               type="search"
               placeholder="Search chats..."
-              id="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-gray-700 w-full pl-10 pr-3 h-12 text-lg rounded-xl appearance-none"
+              className="bg-[#0f1117] text-gray-100 placeholder-gray-500 w-full pl-10 pr-10 h-11 text-sm rounded-xl appearance-none border border-[#1f2230] focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] outline-none transition-all"
             />
             {searchQuery && (
               <button
-                className="absolute right-6"
+                className="absolute right-7 text-gray-400 hover:text-gray-200"
                 onClick={() => setSearchQuery("")}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             )}
           </div>
+
           {searchQuery && (
-            <div className="absolute top-full mt-2 w-84 max-h-60 overflow-y-auto bg-gray-800 rounded-lg shadow-lg z-30 flex flex-col">
+            <div className="absolute top-16 left-4 right-4 mt-1 max-h-60 overflow-y-auto bg-[#13161f] border border-[#1f2230] rounded-lg shadow-xl z-30 flex flex-col">
               {users
                 ?.filter(
                   (u) =>
@@ -103,115 +100,110 @@ const ChatSidebar = ({
                 .map((u) => (
                   <button
                     key={u._id}
-                    className="cursor-pointer w-full text-left hover:bg-gray-700 transition-colors"
+                    className="cursor-pointer w-full text-left hover:bg-[#1a1d29] transition-colors border-b border-[#1f2230] last:border-0"
                     onClick={() => {
                       createChat(u);
                       setSearchQuery("");
                     }}
                   >
-                    <div className="flex flex-1 relative p-3 gap-4 items-center">
-                      <div className="relative items-center">
-                        <UserCircle size={30} />
+                    <div className="flex relative p-3 gap-3 items-center">
+                      <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                        <UserCircle size={24} />
                       </div>
-                      <div className="text-xl">{u.name}</div>
+                      <div className="text-sm font-medium text-gray-200">{u.name}</div>
                     </div>
                   </button>
                 ))}
             </div>
           )}
-          <div className="w-92 flex gap-5 pl-5">
+
+          <div className="flex gap-3 px-4 mt-1">
             <button
-              className={`${toggleChats === "chats" ? "bg-blue-700" : "bg-gray-600"} w-38 h-12 rounded-lg cursor-pointer`}
+              className={`flex-1 h-9 rounded-lg text-sm font-medium transition-colors ${toggleChats === "chats" ? "bg-[#4f46e5] text-white" : "bg-[#0f1117] text-gray-400 hover:bg-[#1a1d29] border border-[#1f2230]"}`}
               onClick={() => setToggleChats("chats")}
             >
-              chats
+              Chats
             </button>
             <button
-              className={`${toggleChats === "allUsers" ? "bg-blue-700" : "bg-gray-600"} w-38 h-12 rounded-lg cursor-pointer`}
+              className={`flex-1 h-9 rounded-lg text-sm font-medium transition-colors ${toggleChats === "allUsers" ? "bg-[#4f46e5] text-white" : "bg-[#0f1117] text-gray-400 hover:bg-[#1a1d29] border border-[#1f2230]"}`}
               onClick={() => setToggleChats("allUsers")}
             >
-              All users
+              All Users
             </button>
           </div>
         </div>
+
         {/* content- RECENT */}
-        <div className="flex flex-col pt-3 pl-4 overfloy-y-auto flex-1">
-          <span className="text-lg text-slate-400 font-medium">Chats</span>
-          {/* show all users */}
+        <div className="flex flex-col flex-1 overflow-y-auto bg-[#13161f]">
+          <div className="px-4 py-3 sticky top-0 bg-[#13161f] z-10">
+            <span className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Recent</span>
+          </div>
 
           {chats && chats.length > 0 ? (
-            <div className="flex flex-col h-full overflow-y-auto">
+            <div className="flex flex-col pb-2">
               {chats.map((chat) => {
                 const latestMessage = chat.chat.latestMessage;
                 const isSelected = selectedUser === chat.chat._id;
-                const isSentByMe = latestMessage.sender === loggedInUser?._id;
                 const unseenCount = chat.chat.unseenCount;
+                
                 const formatTime = (timestamp: string) => {
                   const now = new Date();
                   const past = new Date(timestamp);
-
                   const diffMs = now.getTime() - past.getTime();
                   const diffMins = Math.floor(diffMs / (1000 * 60));
 
                   if (diffMins < 1) return "Just now";
-
-                  if (diffMins < 60) return `${diffMins} min ago`;
+                  if (diffMins < 60) return `${diffMins}m`;
 
                   const diffHours = Math.floor(diffMins / 60);
-                  if (diffHours < 24) return `${diffHours} hr ago`;
+                  if (diffHours < 24) return `${diffHours}h`;
 
                   const diffDays = Math.floor(diffHours / 24);
-                  return `${diffDays} d ago`;
+                  return `${diffDays}d`;
                 };
+
                 return (
                   <button
                     key={chat.chat._id}
-                    onClick={() => {
-                      setSelectedUser(chat.chat._id);
-                    }}
+                    onClick={() => setSelectedUser(chat.chat._id)}
+                    className="w-full"
                   >
                     <div
-                      className={`w-88 text-left p-4 rounded-lg transition-colors hover:bg-[oklch(28.2%_0.091_267.935)]`}
+                      className={`flex items-center gap-3 px-4 py-3 mx-2 rounded-xl transition-colors ${isSelected ? "bg-[#1a1d29] border border-[#1f2230]" : "hover:bg-[#1a1d29] border border-transparent"}`}
                     >
-                      <div className="flex items-center gap-3">
-                        {/* Avatar */}
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center gap-4">
-                          <div>
-                            <UserCircle className="text-gray-400" size={48} />
-                            {/* show whether user is online or not */}
-                          </div>
+                      {/* Avatar */}
+                      <div className="relative flex-shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+                          <UserCircle size={28} />
                         </div>
-                        {/* username and latest message */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-col">
-                            <span className="text-xl font-medium truncate">
-                              {chat.user.user.name}
-                            </span>
-                            <span className="text-sm text-gray-400 truncate">
-                              {latestMessage?.text
-                                ? latestMessage.text
-                                : latestMessage.image
-                                  ? "image"
-                                  : ""}
-                            </span>
-                          </div>
+                        {unseenCount > 0 && (
+                          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#4f46e5] border-2 border-[#13161f] rounded-full"></div>
+                        )}
+                      </div>
+
+                      {/* username and latest message */}
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[15px] font-medium text-gray-100 truncate pr-2">
+                            {chat.user.user.name}
+                          </span>
+                          <span className={`text-xs whitespace-nowrap ${unseenCount > 0 ? "text-indigo-400 font-medium" : "text-gray-500"}`}>
+                            {latestMessage?.updatedAt ? formatTime(chat.chat.updatedAt) : ""}
+                          </span>
                         </div>
-                        {/* time and unseencount */}
-                        <div className="flex justify-end gap-2">
-                          <div className="flex relative bottom-2">
-                            <span className="text-[oklch(70.7%_0.165_254.624)] text-xs">
-                              {unseenCount > 0
-                                ? formatTime(chat.chat.updatedAt)
-                                : ""}
+                        <div className="flex justify-between items-center">
+                          <span className={`text-sm truncate pr-2 ${unseenCount > 0 ? "text-gray-200 font-medium" : "text-gray-500"}`}>
+                            {latestMessage?.text
+                              ? latestMessage.text
+                              : latestMessage?.image
+                                ? "📷 Image"
+                                : "No messages yet"}
+                          </span>
+                          {unseenCount > 0 && (
+                            <span className="flex-shrink-0 min-w-[20px] h-[20px] px-1.5 rounded-full bg-[#4f46e5] flex items-center justify-center text-[10px] font-bold text-white">
+                              {unseenCount}
                             </span>
-                          </div>
-                          <div>
-                            {unseenCount > 0 && (
-                              <span className="flex w-6 h-6 rounded-full bg-[oklch(37.9%_0.146_265.522)] items-center justify-center text-xs">
-                                {unseenCount}
-                              </span>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -220,41 +212,37 @@ const ChatSidebar = ({
               })}
             </div>
           ) : (
-            <div className="flex flex-col flex-1 gap-1 mt-20 items-center">
-              <div className="w-24 h-24 bg-gray-700 text-gray-300 flex rounded-full justify-center items-center">
-                <MessageCircle size={56} />
+            <div className="flex flex-col flex-1 items-center justify-center px-4 text-center pb-10">
+              <div className="w-16 h-16 bg-[#1a1d29] border border-[#1f2230] text-[#4f46e5] flex rounded-2xl justify-center items-center mb-4">
+                <MessageCircle size={32} />
               </div>
-              <div className="flex flex-col justify-center items-center">
-                <p className="text-gray-300">No chats available right now.</p>
-                <p className="text-gray-500">
-                  Start a new conversation and connect with others.
-                </p>
-              </div>
+              <p className="text-gray-200 font-medium mb-1">No chats yet</p>
+              <p className="text-sm text-gray-500 max-w-[200px]">
+                Start a new conversation and connect with others.
+              </p>
             </div>
           )}
         </div>
+
         {/* Footer */}
-        <div className="border-t border-gray-500 p-4">
-          <div className="flex relative justify-between">
-            <div className="h-6 w-6">
-              <button className="cursor-pointer">
-                <UserCircle size={24} />
-              </button>
+        <div className="p-4 border-t border-[#1f2230] bg-[#13161f] mt-auto flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 cursor-pointer group min-w-0">
+               <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex justify-center items-center group-hover:bg-indigo-500/30 transition-colors flex-shrink-0">
+                 <UserRound size={16} />
+               </div>
+               <span className="text-sm font-medium text-gray-300 group-hover:text-gray-100 truncate">{loggedInUser?.name || "Profile"}</span>
             </div>
-            <div className="flex relative gap-5 justify-center items-center">
-              <div className="flex w-8 h-8 rounded-full items-center justify-center">
-                <button className="cursor-pointer hover:text-[oklch(37.9%_0.146_265.522)]">
-                  <Settings />
-                </button>
-              </div>
-              <div className="flex w-8 h-8 rounded-full items-center justify-center">
-                <button
-                  className="cursor-pointer hover:text-red-500"
-                  onClick={handleLogout}
-                >
-                  <LogOut />
-                </button>
-              </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#4f46e5] hover:bg-[#1a1d29] transition-all">
+                <Settings size={18} />
+              </button>
+              <button
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                onClick={handleLogout}
+              >
+                <LogOut size={18} />
+              </button>
             </div>
           </div>
         </div>
