@@ -90,7 +90,7 @@ const ChatSidebar = ({
           </div>
 
           {searchQuery && (
-            <div className="absolute top-16 left-4 right-4 mt-1 max-h-60 overflow-y-auto bg-[#13161f] border border-[#1f2230] rounded-lg shadow-xl z-30 flex flex-col">
+            <div className="absolute top-16 left-4 right-4 mt-1 max-h-60 overflow-y-auto bg-[#13161f] border border-[#1f2230] rounded-lg shadow-xl z-30 flex flex-col [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {users
                 ?.filter(
                   (u) =>
@@ -134,7 +134,7 @@ const ChatSidebar = ({
         </div>
 
         {/* content- RECENT */}
-        <div className="flex flex-col flex-1 overflow-y-auto bg-[#13161f]">
+        <div className="flex flex-col flex-1 overflow-y-auto bg-[#13161f] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="px-4 py-3 sticky top-0 bg-[#13161f] z-10">
             <span className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Recent</span>
           </div>
@@ -176,9 +176,11 @@ const ChatSidebar = ({
                         <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
                           <UserCircle size={28} />
                         </div>
-                        {unseenCount > 0 && (
-                          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#4f46e5] border-2 border-[#13161f] rounded-full"></div>
-                        )}
+                        {/* online status */}
+                        {/* {isOnline > 0 && (
+                          <div className="absolute -top-0 -right-1 w-3.5 h-3.5 bg-[#4f46e5] border-2 border-[#13161f] rounded-full">
+                          </div>
+                        )} */}
                       </div>
 
                       {/* username and latest message */}
@@ -188,7 +190,7 @@ const ChatSidebar = ({
                             {chat.user.user.name}
                           </span>
                           <span className={`text-xs whitespace-nowrap ${unseenCount > 0 ? "text-indigo-400 font-medium" : "text-gray-500"}`}>
-                            {latestMessage?.updatedAt ? formatTime(chat.chat.updatedAt) : ""}
+                            {latestMessage ? formatTime(chat.chat.updatedAt) : ""}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
