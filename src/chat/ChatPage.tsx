@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { UseAppData, type User } from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
 import Loading from "../components/Loading";
@@ -7,7 +7,7 @@ import { chat_Services } from "../API/API";
 import axios from "axios";
 import Cookies from "js-cookie";
 import toast from "react-hot-toast";
-import { UserCircle, Video, MessageSquareDashed, Send } from "lucide-react";
+import ChatBody from "../components/ChatBody";
 export interface Message {
   chatId: string;
   sender: string;
@@ -38,7 +38,6 @@ const ChatPage = () => {
   const [isModal, setIsModal] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [toggleChats, setToggleChats] = useState("chats");
   const [isTyping, setIsTyping] = useState(false);
@@ -115,92 +114,15 @@ const ChatPage = () => {
         />
       </div>
 
-      {/* Main Panel */}
-      <div className="flex flex-1 flex-col h-full bg-[#0f1117]">
-        {selectedUser ? (
-          <>
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 bg-[#13161f] border-b border-[#1f2230]">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                  <UserCircle size={24} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-semibold text-gray-100">{user?.name || "Unknown"}</span>
-                  <span className="text-xs text-indigo-400 font-medium">
-                    {isTyping ? "typing..." : "Online"}
-                  </span>
-                </div>
-              </div>
-              <button className="p-2 text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors">
-                <Video size={20} />
-              </button>
-            </div>
-
-            {/* Message Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {messages?.map((msg, idx) => {
-                const isMine = msg.sender === loggedInUser?._id;
-                return (
-                  <div key={idx} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                      isMine 
-                        ? "bg-[#4f46e5] text-white rounded-br-none" 
-                        : "bg-[#13161f] text-gray-200 border border-[#1f2230] rounded-bl-none"
-                    }`}>
-                      {msg.text && <p className="text-sm leading-relaxed break-words">{msg.text}</p>}
-                      {msg.image && (
-                        <img 
-                          src={msg.image.url} 
-                          alt="Attachment" 
-                          className="max-w-full rounded-lg mt-2 mb-1" 
-                        />
-                      )}
-                      <div className={`text-[10px] mt-1 ${isMine ? "text-indigo-200 text-right" : "text-gray-500 text-left"}`}>
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Footer Input */}
-            <div className="p-4 bg-[#13161f] border-t border-[#1f2230]">
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1 bg-[#0f1117] text-gray-100 placeholder-gray-500 rounded-lg px-4 py-3 outline-none border border-[#1f2230] focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-all"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && message.trim()) {
-                      // Send logic handled elsewhere
-                    }
-                  }}
-                />
-                <button 
-                  className="p-3 bg-[#4f46e5] text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  disabled={!message.trim()}
-                >
-                  <Send size={20} />
-                </button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-1 flex-col items-center justify-center text-center px-4">
-            <div className="w-16 h-16 rounded-2xl bg-[#13161f] border border-[#1f2230] flex items-center justify-center mb-4 text-[#4f46e5]">
-              <MessageSquareDashed size={32} />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-100 mb-2">No Chat Selected</h3>
-            <p className="text-gray-500 max-w-sm">
-              Choose a conversation from the sidebar to start messaging, or create a new chat.
-            </p>
-          </div>
-        )}
-      </div>
+      {/* ChatBody*/}
+      <ChatBody
+        selectedUser={selectedUser}
+        isTyping={isTyping}
+        setIsTyping={setIsTyping}
+        user={user}
+        messages={messages}
+        loggedInUser={loggedInUser}
+      />
     </div>
   );
 };
