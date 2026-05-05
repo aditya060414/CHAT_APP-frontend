@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Cookies from "js-cookie";
 import {
   UserCircle,
   Video,
@@ -9,6 +10,9 @@ import {
 } from "lucide-react";
 import type { User } from "../context/AppContext";
 import type { Message } from "../chat/ChatPage";
+import toast from "react-hot-toast";
+import { chat_Services } from "../API/API";
+import axios from "axios";
 
 interface ChatBodyProps {
   selectedUser: string | null;
@@ -29,6 +33,29 @@ const ChatBody = ({
 }: ChatBodyProps) => {
   const [message, setMessage] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // use websocket for real time update
+  const handleSendMessage = async () => {
+    const token = Cookies.get("token");
+    console.log(token);
+    try {
+      await axios.post(
+        `${chat_Services}/api/v1/chat/message`,
+        {
+          chatId: messages?.[0]?.chatId,
+          text: message,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      toast.success("sent");
+    } catch (error) {
+      toast.error("Message not sent.");
+    }
+  };
   const processedMessages = useMemo(() => {
     return (
       messages?.map((msg) => ({
@@ -120,13 +147,13 @@ const ChatBody = ({
                 className="flex-1 bg-[#0f1117] text-gray-100 placeholder-gray-500 rounded-lg px-4 py-3 outline-none border border-[#1f2230] focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-all"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && message.trim()) {
-                    // Send logic handled elsewhere
                   }
                 }}
               />
               <button
                 className="p-3 bg-[#4f46e5] text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 disabled={!message.trim()}
+                onClick={handleSendMessage}
               >
                 <Send size={20} />
               </button>
