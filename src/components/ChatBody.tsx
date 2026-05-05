@@ -37,7 +37,6 @@ const ChatBody = ({
   // use websocket for real time update
   const handleSendMessage = async () => {
     const token = Cookies.get("token");
-    console.log(token);
     try {
       await axios.post(
         `${chat_Services}/api/v1/chat/message`,
@@ -54,6 +53,8 @@ const ChatBody = ({
       toast.success("sent");
     } catch (error) {
       toast.error("Message not sent.");
+    } finally {
+      setMessage("");
     }
   };
   const processedMessages = useMemo(() => {
@@ -105,7 +106,7 @@ const ChatBody = ({
           </div>
 
           {/* Message Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 chat-scroll">
             {processedMessages.map((msg, idx) => (
               <div
                 key={idx}
@@ -146,7 +147,11 @@ const ChatBody = ({
                 placeholder="Type a message..."
                 className="flex-1 bg-[#0f1117] text-gray-100 placeholder-gray-500 rounded-lg px-4 py-3 outline-none border border-[#1f2230] focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-all"
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && message.trim()) {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (message.trim()) {
+                      handleSendMessage();
+                    }
                   }
                 }}
               />
