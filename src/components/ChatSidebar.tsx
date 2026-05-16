@@ -24,6 +24,8 @@ interface ChatSidebarProps {
   createChat: (u: User) => void;
   toggleChats: string;
   setToggleChats: React.Dispatch<React.SetStateAction<string>>;
+  onlineUsers: string[] | null;
+  typingChats: Record<string, string[]>;
 }
 
 const ChatSidebar = ({
@@ -38,6 +40,8 @@ const ChatSidebar = ({
   setSelectedUser,
   handleLogout,
   createChat,
+  onlineUsers,
+  typingChats,
 }: ChatSidebarProps) => {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -52,11 +56,13 @@ const ChatSidebar = ({
             <UserRound size={24} />
           </div>
           <div className="flex flex-col flex-1 min-w-0">
-            <span className="text-lg font-semibold truncate">{loggedInUser?.name || "Username"}</span>
+            <span className="text-lg font-semibold truncate">
+              {loggedInUser?.name || "Username"}
+            </span>
             <span className="text-xs text-indigo-400 font-medium">Online</span>
           </div>
           <div className="flex justify-end gap-2 flex-shrink-0">
-            <button className="flex bg-[#0f1117] w-10 h-10 justify-center items-center rounded-lg hover:bg-[#4f46e5] text-gray-400 hover:text-white transition-colors border border-[#1f2230]">
+            <button className="flex w-10 h-10 justify-center items-center rounded-lg hover:bg-[#4f46e5] text-gray-400 hover:text-white transition-colors border-none">
               <MessageCirclePlus size={20} />
             </button>
             <button
@@ -107,10 +113,17 @@ const ChatSidebar = ({
                     }}
                   >
                     <div className="flex relative p-3 gap-3 items-center">
-                      <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                        <UserCircle size={24} />
+                      <div className="relative flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                          <UserCircle size={24} />
+                        </div>
+                        {onlineUsers?.includes(u._id) && (
+                          <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#13161f] rounded-full"></div>
+                        )}
                       </div>
-                      <div className="text-sm font-medium text-gray-200">{u.name}</div>
+                      <div className="text-sm font-medium text-gray-200">
+                        {u.name}
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -136,7 +149,9 @@ const ChatSidebar = ({
         {/* content- RECENT */}
         <div className="flex flex-col flex-1 overflow-y-auto bg-[#13161f] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="px-4 py-3 sticky top-0 bg-[#13161f] z-10">
-            <span className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Recent</span>
+            <span className="text-xs uppercase tracking-wider text-gray-500 font-semibold">
+              Recent
+            </span>
           </div>
 
           {chats && chats.length > 0 ? (
@@ -145,7 +160,7 @@ const ChatSidebar = ({
                 const latestMessage = chat.chat.latestMessage;
                 const isSelected = selectedUser === chat.chat._id;
                 const unseenCount = chat.chat.unseenCount;
-                
+
                 const formatTime = (timestamp: string) => {
                   const now = new Date();
                   const past = new Date(timestamp);
@@ -177,30 +192,45 @@ const ChatSidebar = ({
                           <UserCircle size={28} />
                         </div>
                         {/* online status */}
-                        {/* {isOnline > 0 && (
-                          <div className="absolute -top-0 -right-1 w-3.5 h-3.5 bg-[#4f46e5] border-2 border-[#13161f] rounded-full">
-                          </div>
-                        )} */}
+                        {onlineUsers?.includes(
+                          chat.user?._id || chat.user?.user?._id,
+                        ) && (
+                          <div className="absolute -top-0 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-[#13161f] rounded-full"></div>
+                        )}
                       </div>
 
                       {/* username and latest message */}
                       <div className="flex-1 min-w-0 text-left">
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-[15px] font-medium text-gray-100 truncate pr-2">
-                            {chat.user.user.name}
+                            {chat.user?.name ||
+                              chat.user?.user?.name ||
+                              "Unknown"}
                           </span>
-                          <span className={`text-xs whitespace-nowrap ${unseenCount > 0 ? "text-indigo-400 font-medium" : "text-gray-500"}`}>
-                            {latestMessage ? formatTime(chat.chat.updatedAt) : ""}
+                          <span
+                            className={`text-xs whitespace-nowrap ${unseenCount > 0 ? "text-indigo-400 font-medium" : "text-gray-500"}`}
+                          >
+                            {latestMessage
+                              ? formatTime(chat.chat.updatedAt)
+                              : ""}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className={`text-sm truncate pr-2 ${unseenCount > 0 ? "text-gray-200 font-medium" : "text-gray-500"}`}>
-                            {latestMessage?.text
-                              ? latestMessage.text
-                              : latestMessage?.image
-                                ? "📷 Image"
-                                : "No messages yet"}
-                          </span>
+                          {typingChats && typingChats[chat.chat._id]?.length > 0 && !isSelected ? (
+                            <span className="text-sm truncate pr-2 text-indigo-400 font-medium italic">
+                              typing...
+                            </span>
+                          ) : (
+                            <span
+                              className={`text-sm truncate pr-2 ${unseenCount > 0 ? "text-gray-200 font-medium" : "text-gray-500"}`}
+                            >
+                              {latestMessage?.text
+                                ? latestMessage.text
+                                : latestMessage?.image
+                                  ? "📷 Image"
+                                  : "No messages yet"}
+                            </span>
+                          )}
                           {unseenCount > 0 && (
                             <span className="flex-shrink-0 min-w-[20px] h-[20px] px-1.5 rounded-full bg-[#4f46e5] flex items-center justify-center text-[10px] font-bold text-white">
                               {unseenCount}
@@ -230,10 +260,12 @@ const ChatSidebar = ({
         <div className="p-4 border-t border-[#1f2230] bg-[#13161f] mt-auto flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 cursor-pointer group min-w-0">
-               <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex justify-center items-center group-hover:bg-indigo-500/30 transition-colors flex-shrink-0">
-                 <UserRound size={16} />
-               </div>
-               <span className="text-sm font-medium text-gray-300 group-hover:text-gray-100 truncate">{loggedInUser?.name || "Profile"}</span>
+              <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex justify-center items-center group-hover:bg-indigo-500/30 transition-colors flex-shrink-0">
+                <UserRound size={16} />
+              </div>
+              <span className="text-sm font-medium text-gray-300 group-hover:text-gray-100 truncate">
+                {loggedInUser?.name || "Profile"}
+              </span>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#4f46e5] hover:bg-[#1a1d29] transition-all">
