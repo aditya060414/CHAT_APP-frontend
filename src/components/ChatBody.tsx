@@ -13,44 +13,64 @@ import type { Message } from "../chat/ChatPage";
 import toast from "react-hot-toast";
 import { chat_Services } from "../API/API";
 import axios from "axios";
+import { io, Socket } from "socket.io-client";
 
 interface ChatBodyProps {
   selectedUser: string | null;
-  isTyping: boolean;
-  setIsTyping: React.Dispatch<React.SetStateAction<boolean>>;
+  typingChats: Record<string, string[]>;
   user: User | null;
   messages: Message[] | null;
   loggedInUser: User | null;
+  onlineUsers: string[] | null;
+  socket: Socket | null;
 }
 
 const ChatBody = ({
   selectedUser,
-  isTyping,
-  setIsTyping,
+  typingChats,
   user,
   messages,
   loggedInUser,
+  onlineUsers,
+  socket,
 }: ChatBodyProps) => {
   const [message, setMessage] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // use websocket for real time update
+
   const handleSendMessage = async () => {
+    if (!selectedUser) return;
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+      socket?.emit("stopTyping", {
+        chatId: selectedUser,
+        userId: loggedInUser?._id,
+      });
+    }
+
     const token = Cookies.get("token");
     try {
       await axios.post(
         `${chat_Services}/api/v1/chat/message`,
         {
-          chatId: messages?.[0]?.chatId,
+          chatId: selectedUser,
           text: message,
         },
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
           },
         },
       );
+      // socket.emit("send_message", {
+      //   chatId: selectedUser,
+      //   text: message,
+      //   sender: loggedInUser?._id,
+      // });
       toast.success("sent");
     } catch (error) {
       toast.error("Message not sent.");
@@ -73,6 +93,38 @@ const ChatBody = ({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleTyping = (value: string) => {
+    setMessage(value);
+    if (!selectedUser || !socket) return;
+
+    if (value.trim()) {
+      console.log("Emitting typing event...");
+      socket.emit("typing", {
+        chatId: selectedUser,
+        userId: loggedInUser?._id,
+      });
+    } else {
+      console.log("Emitting stopTyping event (empty input)...");
+      socket.emit("stopTyping", {
+        chatId: selectedUser,
+        userId: loggedInUser?._id,
+      });
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      console.log("Emitting stopTyping event (timeout)...");
+      socket.emit("stopTyping", {
+        chatId: selectedUser,
+        userId: loggedInUser?._id,
+      });
+      typingTimeoutRef.current = null;
+    }, 2000);
+  };
   return (
     <div className="flex flex-1 flex-col h-full bg-[#0f1117]">
       {selectedUser ? (
@@ -88,9 +140,19 @@ const ChatBody = ({
                   {user?.name || "Unknown"}
                 </span>
                 {/* socket */}
-                {/* <span className="text-xs text-indigo-400 font-medium">
-                  {isTyping ? "typing..." : "Online"}
-                </span> */}
+                {selectedUser && typingChats[selectedUser]?.includes(user?._id as string) ? (
+                  <span className="text-xs text-indigo-400 font-medium">
+                    typing...
+                  </span>
+                ) : user?._id && onlineUsers?.includes(user._id) ? (
+                  <span className="text-xs text-green-500 font-medium">
+                    Online
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-500 font-medium">
+                    Offline
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -144,7 +206,7 @@ const ChatBody = ({
               <input
                 type="text"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => handleTyping(e.target.value)}
                 placeholder="Type a message..."
                 className="flex-1 bg-[#0f1117] text-gray-100 placeholder-gray-500 rounded-lg px-4 py-3 outline-none border border-[#1f2230] focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-all"
                 onKeyDown={(e) => {
