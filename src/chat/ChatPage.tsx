@@ -8,6 +8,8 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import toast from "react-hot-toast";
 import ChatBody from "../components/ChatBody";
+import { useSocketData } from "../context/SocketContext";
+
 export interface Message {
   chatId: string;
   sender: string;
@@ -35,15 +37,15 @@ const ChatPage = () => {
     users,
   } = UseAppData();
 
+  const { onlineUsers, socket } = useSocketData();
+
   const [isModal, setIsModal] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [toggleChats, setToggleChats] = useState("chats");
-  const [isTyping, setIsTyping] = useState(false);
-  const [typingTimeout, setTypingTimeout] = useState<ReturnType<
-    typeof setTimeout
-  > | null>(null);
+  const [typingChats, setTypingChats] = useState<Record<string, string[]>>({});
+
   useEffect(() => {
     if (!isAuth && !loading) {
       navigate("/login");
@@ -86,14 +88,66 @@ const ChatPage = () => {
       },
     );
     setMessages(data.messages);
-    setUser(data.user.user);
+    setUser(data.user?.user || data.user);
     await fetchChats();
   }
   useEffect(() => {
+    if (socket && chats) {
+      chats.forEach((chat) => {
+        socket.emit("joinChat", chat.chat._id);
+      });
+    }
+  }, [socket, chats]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleTyping = (data: any) => {
+      console.log("Received userTyping from backend:", data);
+      if (data.userId === loggedInUser?._id) return;
+      setTypingChats((prev) => {
+        const chatTyping = prev[data.chatId] || [];
+        if (!chatTyping.includes(data.userId)) {
+          console.log("Adding user to typingChats state");
+          return { ...prev, [data.chatId]: [...chatTyping, data.userId] };
+        }
+        return prev;
+      });
+    };
+
+    const handleStopTyping = (data: any) => {
+      console.log("Received userStoppedTyping from backend:", data);
+      setTypingChats((prev) => {
+        const chatTyping = prev[data.chatId] || [];
+        if (chatTyping.includes(data.userId)) {
+          console.log("Removing user from typingChats state");
+          return {
+            ...prev,
+            [data.chatId]: chatTyping.filter((id) => id !== data.userId),
+          };
+        }
+        return prev;
+      });
+    };
+
+    socket.on("userTyping", handleTyping);
+    socket.on("userStoppedTyping", handleStopTyping);
+
+    return () => {
+      socket.off("userTyping", handleTyping);
+      socket.off("userStoppedTyping", handleStopTyping);
+    };
+  }, [socket, loggedInUser?._id]);
+
+  useEffect(() => {
     if (selectedUser) {
       fetchChat();
+      return () => {
+        setMessages(null);
+      };
     }
   }, [selectedUser]);
+
   if (loading) return <Loading />;
 
   return (
@@ -111,17 +165,20 @@ const ChatPage = () => {
           setSelectedUser={setSelectedUser}
           handleLogout={handleLogout}
           createChat={handleCreateChat}
+          onlineUsers={onlineUsers}
+          typingChats={typingChats}
         />
       </div>
 
       {/* ChatBody*/}
       <ChatBody
         selectedUser={selectedUser}
-        isTyping={isTyping}
-        setIsTyping={setIsTyping}
         user={user}
         messages={messages}
         loggedInUser={loggedInUser}
+        onlineUsers={onlineUsers}
+        socket={socket}
+        typingChats={typingChats}
       />
     </div>
   );
