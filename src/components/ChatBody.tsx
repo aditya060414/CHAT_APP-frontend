@@ -7,6 +7,16 @@ import {
   Send,
   Phone,
   EllipsisVertical,
+  Check,
+  CheckCheck,
+  X,
+  LogOut,
+  Paperclip,
+  FileText,
+  Download,
+  Eye,
+  FileSpreadsheet,
+  FileType,
 } from "lucide-react";
 import type { User } from "../context/AppContext";
 import type { Message } from "../chat/ChatPage";
@@ -17,6 +27,7 @@ import { io, Socket } from "socket.io-client";
 
 interface ChatBodyProps {
   selectedUser: string | null;
+  setSelectedUser: (userId: string | null) => void;
   typingChats: Record<string, string[]>;
   user: User | null;
   messages: Message[] | null;
@@ -27,6 +38,7 @@ interface ChatBodyProps {
 
 const ChatBody = ({
   selectedUser,
+  setSelectedUser,
   typingChats,
   user,
   messages,
@@ -35,47 +47,103 @@ const ChatBody = ({
   socket,
 }: ChatBodyProps) => {
   const [message, setMessage] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
+  const [activeFileIndex, setActiveFileIndex] = useState(0);
+  const [sending, setSending] = useState(false);
+  const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
+  const [docPreviewUrl, setDocPreviewUrl] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // use websocket for real time update
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const incoming = Array.from(e.target.files || []);
+    if (!incoming.length) return;
+    const previews = incoming.map((f) =>
+      f.type.startsWith("image/") || f.type.startsWith("video/")
+        ? URL.createObjectURL(f)
+        : ""
+    );
+    setSelectedFiles((prev) => {
+      const merged = [...prev, ...incoming];
+      setActiveFileIndex(merged.length - incoming.length); // focus first new file
+      return merged;
+    });
+    setFilePreviews((prev) => [...prev, ...previews]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const clearFiles = () => {
+    setSelectedFiles([]);
+    setFilePreviews([]);
+    setActiveFileIndex(0);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length === 0) clearFiles();
+      return next;
+    });
+    setFilePreviews((prev) => prev.filter((_, i) => i !== index));
+    setActiveFileIndex((prev) => Math.max(0, prev >= index ? prev - 1 : prev));
+  };
+
   const handleSendMessage = async () => {
     if (!selectedUser) return;
+    if (!message.trim() && selectedFiles.length === 0) return;
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
-      socket?.emit("stopTyping", {
-        chatId: selectedUser,
-        userId: loggedInUser?._id,
-      });
+      socket?.emit("stopTyping", { chatId: selectedUser, userId: loggedInUser?._id });
     }
 
     const token = Cookies.get("token");
+    setSending(true);
     try {
-      await axios.post(
-        `${chat_Services}/api/v1/chat/message`,
-        {
-          chatId: selectedUser,
-          text: message,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      // socket.emit("send_message", {
-      //   chatId: selectedUser,
-      //   text: message,
-      //   sender: loggedInUser?._id,
-      // });
-      toast.success("sent");
+      if (selectedFiles.length > 0) {
+        // Send one request per file, caption only on first message
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const formData = new FormData();
+          formData.append("chatId", selectedUser);
+          if (i === 0 && message.trim()) formData.append("text", message);
+          formData.append("image", selectedFiles[i]);
+          await axios.post(`${chat_Services}/api/v1/chat/message`, formData, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        }
+      } else {
+        const formData = new FormData();
+        formData.append("chatId", selectedUser);
+        formData.append("text", message);
+        await axios.post(`${chat_Services}/api/v1/chat/message`, formData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
     } catch (error) {
       toast.error("Message not sent.");
     } finally {
       setMessage("");
+      clearFiles();
+      setSending(false);
     }
   };
   const processedMessages = useMemo(() => {
@@ -99,13 +167,11 @@ const ChatBody = ({
     if (!selectedUser || !socket) return;
 
     if (value.trim()) {
-      console.log("Emitting typing event...");
       socket.emit("typing", {
         chatId: selectedUser,
         userId: loggedInUser?._id,
       });
     } else {
-      console.log("Emitting stopTyping event (empty input)...");
       socket.emit("stopTyping", {
         chatId: selectedUser,
         userId: loggedInUser?._id,
@@ -117,7 +183,6 @@ const ChatBody = ({
     }
 
     typingTimeoutRef.current = setTimeout(() => {
-      console.log("Emitting stopTyping event (timeout)...");
       socket.emit("stopTyping", {
         chatId: selectedUser,
         userId: loggedInUser?._id,
@@ -126,7 +191,7 @@ const ChatBody = ({
     }, 2000);
   };
   return (
-    <div className="flex flex-1 flex-col h-full bg-[#0f1117]">
+    <div className="flex flex-1 flex-col h-full bg-[#0f1117] relative">
       {selectedUser ? (
         <>
           {/* Header */}
@@ -162,47 +227,304 @@ const ChatBody = ({
               <button className="p-2 text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors">
                 <Video size={20} />
               </button>
-              <button className="p-2 text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors">
-                <EllipsisVertical size={20} />
-              </button>
+              {/* Dropdown Menu */}
+              <div className="relative" ref={menuRef}>
+                <button
+                  className="p-2 text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                  onClick={() => setMenuOpen((prev) => !prev)}
+                >
+                  <EllipsisVertical size={20} />
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 top-10 w-44 bg-[#1a1d29] border border-[#2a2d3d] rounded-xl shadow-2xl z-50 overflow-hidden">
+                    <button
+                      className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                      onClick={() => {
+                        setSelectedUser(null);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      <LogOut size={15} />
+                      Close Chat
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Message Body */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4 chat-scroll">
-            {processedMessages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}
-              >
+            {messages === null ? (
+              <div className="flex h-full items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#4f46e5]"></div>
+              </div>
+            ) : processedMessages.length > 0 ? (
+              processedMessages.map((msg, idx) => (
                 <div
-                  className={`max-w-[75%] px-4 py-3 flex flex-col gap-1 shadow-sm ${
-                    msg.isMine
-                      ? "bg-[#4f46e5] text-white rounded-2xl rounded-br-sm"
-                      : "bg-[#1f2230] text-gray-100 rounded-2xl rounded-bl-sm border border-[#2a2d3d]"
-                  }`}
+                  key={idx}
+                  className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}
                 >
-                  {msg.text && (
-                    <p className="leading-relaxed whitespace-pre-wrap text-[15px]">
-                      {msg.text}
-                    </p>
-                  )}
-                  <span
-                    className={`text-[11px] font-medium self-end ${
-                      msg.isMine ? "text-indigo-200" : "text-gray-400"
+                  <div
+                    className={`max-w-[75%] px-4 py-3 flex flex-col gap-1 shadow-sm ${
+                      msg.isMine
+                        ? "bg-[#5e59bd15] text-white rounded-2xl rounded-br-sm"
+                        : "bg-[#1f223057] text-gray-100 rounded-2xl rounded-bl-sm border border-[#2a2d3d]"
                     }`}
                   >
-                    {msg.time}
-                  </span>
+                    {msg.messageType === "image" && msg.image && (
+                      <img
+                        src={msg.image.url}
+                        alt="sent image"
+                        className="max-w-[280px] rounded-xl mb-1 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setImageModalUrl(msg.image!.url)}
+                      />
+                    )}
+                    {msg.messageType === "video" && msg.video && (
+                      <video
+                        src={msg.video.url}
+                        controls
+                        className="max-w-[280px] rounded-xl mb-1"
+                      />
+                    )}
+                    {msg.messageType === "file" && msg.file && (() => {
+                      const mime = msg.file.mimeType || "";
+                      const isOfficeDoc = mime.includes("word") || mime.includes("excel") || mime.includes("sheet") || mime.includes("presentation") || mime.includes("powerpoint");
+                      const isPreviewable = mime === "application/pdf" || mime.startsWith("text/") || isOfficeDoc;
+                      const FileIcon = mime.includes("sheet") || mime.includes("excel")
+                        ? FileSpreadsheet
+                        : mime.includes("word")
+                          ? FileType
+                          : FileText;
+
+                      const handleDownload = async () => {
+                        try {
+                          const resp = await fetch(msg.file!.url);
+                          const blob = await resp.blob();
+                          const blobUrl = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = blobUrl;
+                          a.download = msg.file!.name;
+                          a.click();
+                          URL.revokeObjectURL(blobUrl);
+                        } catch {
+                          window.open(msg.file!.url, "_blank");
+                        }
+                      };
+
+                      return (
+                        <div className="flex flex-col gap-2 bg-black/20 rounded-xl px-3 py-3 mb-1 min-w-[220px] max-w-[280px]">
+                          {/* File info row */}
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                              <FileIcon size={20} className="text-indigo-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{msg.file.name}</p>
+                              <p className="text-xs text-gray-400 mt-0.5 uppercase">
+                                {msg.file.name.split(".").pop()}
+                              </p>
+                            </div>
+                          </div>
+                          {/* Action buttons */}
+                          <div className="flex gap-2">
+                            {isPreviewable && (
+                              <button
+                                onClick={() => {
+                                  if (isOfficeDoc) {
+                                    setDocPreviewUrl(`https://docs.google.com/viewer?url=${encodeURIComponent(msg.file!.url)}&embedded=true`);
+                                  } else {
+                                    setDocPreviewUrl(msg.file!.url);
+                                  }
+                                }}
+                                className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-lg py-1.5 text-xs font-medium transition-colors"
+                              >
+                                <Eye size={13} />
+                                Preview
+                              </button>
+                            )}
+                            <button
+                              onClick={handleDownload}
+                              className="flex-1 flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-gray-200 rounded-lg py-1.5 text-xs font-medium transition-colors"
+                            >
+                              <Download size={13} />
+                              Download
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {msg.text && (
+                      <p className="leading-relaxed whitespace-pre-wrap text-[15px]">
+                        {msg.text}
+                      </p>
+                    )}
+                    <div
+                      className={`flex items-center gap-1 text-[11px] font-medium self-end ${
+                        msg.isMine ? "text-indigo-200" : "text-gray-400"
+                      }`}
+                    >
+                      <span>
+                        {msg.status === "seen" && msg.seenAt 
+                          ? new Date(msg.seenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                          : msg.time}
+                      </span>
+                      {msg.isMine && (
+                        <span className="ml-0.5 flex items-center">
+                          {(msg.status === "seen" || msg.seen) ? (
+                            <CheckCheck size={14} className="text-blue-400" />
+                          ) : msg.status === "delivered" || (msg.status === "sent" && selectedUser && onlineUsers?.includes(selectedUser)) ? (
+                            <CheckCheck size={14} className="text-indigo-300" />
+                          ) : (
+                            <Check size={14} className="text-indigo-200" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center text-center text-gray-500">
+                <div className="w-16 h-16 rounded-2xl bg-[#13161f] border border-[#1f2230] flex items-center justify-center mb-4 text-[#4f46e5]">
+                  <MessageSquareDashed size={32} />
+                </div>
+                <p className="text-gray-200 font-medium mb-1">No messages yet</p>
+                <p className="text-sm">Say hi to start the conversation!</p>
               </div>
-            ))}
+            )}
             <div ref={bottomRef} />
           </div>
 
           {/* Footer Input */}
-          <div className="p-4 bg-[#13161f] border-t border-[#1f2230]">
+          <div className="px-4 pt-2 pb-4 bg-[#13161f] border-t border-[#1f2230]">
+            {/* Rich Multi-File Preview Panel */}
+            {selectedFiles.length > 0 && (
+              <div className="absolute inset-0 z-30 flex flex-col bg-[#0c0e14]">
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-[#1f2230] bg-[#13161f]">
+                  <span className="text-sm font-semibold text-gray-200">
+                    Send {selectedFiles.length} {selectedFiles.length === 1 ? "File" : "Files"}
+                  </span>
+                  <button
+                    onClick={clearFiles}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-red-500/20 transition-all"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Active File Preview */}
+                <div className="flex-1 flex items-center justify-center overflow-hidden p-6">
+                  {filePreviews[activeFileIndex] && selectedFiles[activeFileIndex]?.type.startsWith("image/") && (
+                    <img
+                      src={filePreviews[activeFileIndex]}
+                      alt="preview"
+                      className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl"
+                    />
+                  )}
+                  {filePreviews[activeFileIndex] && selectedFiles[activeFileIndex]?.type.startsWith("video/") && (
+                    <video
+                      src={filePreviews[activeFileIndex]}
+                      controls
+                      className="max-h-full max-w-full rounded-2xl shadow-2xl"
+                    />
+                  )}
+                  {!filePreviews[activeFileIndex] && selectedFiles[activeFileIndex] && (
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-24 h-24 rounded-3xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center">
+                        <FileText size={40} className="text-indigo-400" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-gray-100 font-medium">{selectedFiles[activeFileIndex].name}</p>
+                        <p className="text-gray-500 text-sm mt-1">{(selectedFiles[activeFileIndex].size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Thumbnail Strip */}
+                <div className="flex items-center gap-2 px-4 pb-3 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+                  {selectedFiles.map((file, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setActiveFileIndex(idx)}
+                      className={`relative flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${
+                        idx === activeFileIndex ? "border-indigo-500 scale-105" : "border-transparent opacity-60 hover:opacity-100"
+                      }`}
+                    >
+                      {filePreviews[idx] && file.type.startsWith("image/") && (
+                        <img src={filePreviews[idx]} alt="" className="w-full h-full object-cover" />
+                      )}
+                      {filePreviews[idx] && file.type.startsWith("video/") && (
+                        <video src={filePreviews[idx]} className="w-full h-full object-cover" />
+                      )}
+                      {!filePreviews[idx] && (
+                        <div className="w-full h-full bg-indigo-500/15 flex items-center justify-center">
+                          <FileText size={20} className="text-indigo-400" />
+                        </div>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
+                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/70 rounded-full flex items-center justify-center text-white hover:bg-red-500 transition-colors"
+                      >
+                        <X size={9} />
+                      </button>
+                    </div>
+                  ))}
+                  {/* Add More button */}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-[#2a2d3d] flex items-center justify-center text-gray-500 hover:text-indigo-400 hover:border-indigo-500 transition-all"
+                    title="Add more files"
+                  >
+                    <Paperclip size={18} />
+                  </button>
+                </div>
+
+                {/* Caption + Send */}
+                <div className="px-4 pb-4 pt-2 border-t border-[#1f2230] flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Add a caption..."
+                    className="flex-1 bg-[#1a1d29] text-gray-100 placeholder-gray-500 rounded-xl px-4 py-3 outline-none border border-[#2a2d3d] focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-all"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); handleSendMessage(); }
+                    }}
+                  />
+                  <button
+                    className="p-3 bg-[#4f46e5] text-white rounded-xl hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    disabled={sending}
+                    onClick={handleSendMessage}
+                  >
+                    {sending ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Send size={20} />
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-3">
+              {/* Hidden file input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                multiple
+                accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain"
+                className="hidden"
+              />
+              <button
+                className="p-3 text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors flex-shrink-0"
+                onClick={() => fileInputRef.current?.click()}
+                title="Attach file"
+              >
+                <Paperclip size={20} />
+              </button>
               <input
                 type="text"
                 value={message}
@@ -212,7 +534,7 @@ const ChatBody = ({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    if (message.trim()) {
+                    if (message.trim() || selectedFiles.length > 0) {
                       handleSendMessage();
                     }
                   }
@@ -220,7 +542,7 @@ const ChatBody = ({
               />
               <button
                 className="p-3 bg-[#4f46e5] text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                disabled={!message.trim()}
+                disabled={(!message.trim() && selectedFiles.length === 0) || sending}
                 onClick={handleSendMessage}
               >
                 <Send size={20} />
@@ -240,6 +562,61 @@ const ChatBody = ({
             Choose a conversation from the sidebar to start messaging, or create
             a new chat.
           </p>
+        </div>
+      )}
+
+      {/* Image Preview Modal */}
+      {imageModalUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setImageModalUrl(null)}
+        >
+          {/* Close button — fixed top-right corner */}
+          <button
+            className="fixed top-4 right-4 w-9 h-9 bg-[#1a1d29] border border-[#2a2d3d] rounded-full flex items-center justify-center text-gray-300 hover:text-white hover:bg-red-500/80 transition-all z-60"
+            onClick={() => setImageModalUrl(null)}
+          >
+            <X size={16} />
+          </button>
+
+          <div
+            className="max-w-[90vw] max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={imageModalUrl}
+              alt="Full preview"
+              className="max-w-[90vw] max-h-[90vh] rounded-2xl object-contain shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Document Preview Modal */}
+      {docPreviewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setDocPreviewUrl(null)}
+        >
+          {/* Close button — fixed top-right corner */}
+          <button
+            className="fixed top-4 right-4 w-9 h-9 bg-[#1a1d29] border border-[#2a2d3d] rounded-full flex items-center justify-center text-gray-300 hover:text-white hover:bg-red-500/80 transition-all z-60"
+            onClick={() => setDocPreviewUrl(null)}
+          >
+            <X size={16} />
+          </button>
+
+          <div
+            className="w-[90vw] h-[90vh] bg-[#13161f] rounded-2xl overflow-hidden border border-[#1f2230]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <iframe
+              src={docPreviewUrl}
+              className="w-full h-full"
+              frameBorder="0"
+              title="Document Preview"
+            />
+          </div>
         </div>
       )}
     </div>
