@@ -11,15 +11,16 @@ import ChatBody from "../components/ChatBody";
 import { useSocketData } from "../context/SocketContext";
 
 export interface Message {
+  _id: string;
   chatId: string;
   sender: string;
   text?: string;
-  image?: {
-    url: string;
-    publicId: string;
-  };
-  messageType: "text" | "image";
+  image?: { url: string; publicId: string; };
+  video?: { url: string; publicId: string; };
+  file?: { url: string; publicId: string; name: string; mimeType: string; };
+  messageType: "text" | "image" | "video" | "file";
   seen: boolean;
+  status?: "sent" | "delivered" | "seen";
   seenAt?: string;
   createdAt: string;
 }
@@ -100,15 +101,62 @@ const ChatPage = () => {
   }, [socket, chats]);
 
   useEffect(() => {
-    if (!socket) return;
+    if (socket) {
+      socket.emit("setActiveChat", selectedUser);
+    }
+  }, [selectedUser, socket]);
 
+  useEffect(() => {
+    if (!socket) return;
+    socket?.on("newMessage", (message) => {
+      if (selectedUser === message.chatId) {
+        setMessages((prev) => {
+          const currentMsg = prev || [];
+          const messageExist = currentMsg.some(
+            (msg: any) => msg?._id === message._id,
+          );
+          if (!messageExist) {
+            return [...currentMsg, message];
+          }
+          return currentMsg;
+        });
+      }
+
+      setChats((prevChats: any) => {
+        if (!prevChats) return prevChats;
+        
+        const updatedChats = prevChats.map((c: any) => {
+          if (c.chat._id === message.chatId) {
+            return {
+              ...c,
+              chat: {
+                ...c.chat,
+                latestMessage: {
+                  text: message.text || (message.image ? "📷 Image" : ""),
+                  sender: message.sender,
+                  status: message.status,
+                  seenAt: message.seenAt,
+                },
+                updatedAt: message.createdAt,
+                unseenCount: message.sender !== loggedInUser?._id && selectedUser !== message.chatId 
+                  ? (c.chat.unseenCount || 0) + 1 
+                  : c.chat.unseenCount,
+              }
+            };
+          }
+          return c;
+        });
+        
+        return updatedChats.sort((a: any, b: any) => 
+          new Date(b.chat.updatedAt).getTime() - new Date(a.chat.updatedAt).getTime()
+        );
+      });
+    });
     const handleTyping = (data: any) => {
-      console.log("Received userTyping from backend:", data);
       if (data.userId === loggedInUser?._id) return;
       setTypingChats((prev) => {
         const chatTyping = prev[data.chatId] || [];
         if (!chatTyping.includes(data.userId)) {
-          console.log("Adding user to typingChats state");
           return { ...prev, [data.chatId]: [...chatTyping, data.userId] };
         }
         return prev;
@@ -116,11 +164,9 @@ const ChatPage = () => {
     };
 
     const handleStopTyping = (data: any) => {
-      console.log("Received userStoppedTyping from backend:", data);
       setTypingChats((prev) => {
         const chatTyping = prev[data.chatId] || [];
         if (chatTyping.includes(data.userId)) {
-          console.log("Removing user from typingChats state");
           return {
             ...prev,
             [data.chatId]: chatTyping.filter((id) => id !== data.userId),
@@ -130,14 +176,49 @@ const ChatPage = () => {
       });
     };
 
+    const handleMessagesSeen = (data: any) => {
+      setMessages((prev) => {
+        if (!prev) return prev;
+        return prev.map((msg) => {
+          if (data.messageIds.includes(msg._id)) {
+            return { ...msg, seen: true, status: "seen", seenAt: new Date().toISOString() };
+          }
+          return msg;
+        });
+      });
+      setChats((prevChats: any) => {
+        if (!prevChats) return prevChats;
+        return prevChats.map((c: any) => {
+          if (c.chat._id === data.chatId) {
+            return {
+              ...c,
+              chat: {
+                ...c.chat,
+                latestMessage: {
+                  ...c.chat.latestMessage,
+                  status: "seen",
+                  seenAt: new Date().toISOString()
+                },
+                unseenCount: 0,
+              }
+            };
+          }
+          return c;
+        });
+      });
+    };
+
     socket.on("userTyping", handleTyping);
     socket.on("userStoppedTyping", handleStopTyping);
+    socket.on("messagesSeen", handleMessagesSeen);
 
     return () => {
-      socket.off("userTyping", handleTyping);
-      socket.off("userStoppedTyping", handleStopTyping);
+      socket?.off("newMessage");
+      socket?.off("userTyping", handleTyping);
+      socket?.off("userStoppedTyping", handleStopTyping);
+      socket?.off("messagesSeen", handleMessagesSeen);
     };
-  }, [socket, loggedInUser?._id]);
+  }, [selectedUser, socket, setChats, loggedInUser?._id]);
 
   useEffect(() => {
     if (selectedUser) {
@@ -173,6 +254,7 @@ const ChatPage = () => {
       {/* ChatBody*/}
       <ChatBody
         selectedUser={selectedUser}
+        setSelectedUser={setSelectedUser}
         user={user}
         messages={messages}
         loggedInUser={loggedInUser}
