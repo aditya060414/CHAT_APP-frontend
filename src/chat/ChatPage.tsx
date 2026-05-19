@@ -233,7 +233,11 @@ const ChatPage = () => {
 
   return (
     <div className="h-screen bg-[#0f1117] text-gray-100 flex overflow-hidden">
-      <div className="w-[300px] flex-shrink-0 border-r border-[#1f2230] bg-[#13161f] z-20">
+      {/* Sidebar Container */}
+      <div className={`
+        ${selectedUser ? "hidden md:flex" : "flex w-full"} 
+        md:w-[350px] md:flex-shrink-0 border-r border-[#1f2230] bg-[#13161f] z-20 flex-col h-full
+      `}>
         <ChatSidebar
           isModal={isModal}
           setIsModal={setIsModal}
@@ -251,17 +255,22 @@ const ChatPage = () => {
         />
       </div>
 
-      {/* ChatBody*/}
-      <ChatBody
-        selectedUser={selectedUser}
-        setSelectedUser={setSelectedUser}
-        user={user}
-        messages={messages}
-        loggedInUser={loggedInUser}
-        onlineUsers={onlineUsers}
-        socket={socket}
-        typingChats={typingChats}
-      />
+      {/* ChatBody Container */}
+      <div className={`
+        flex-1 h-full
+        ${selectedUser ? "flex" : "hidden md:flex"}
+      `}>
+        <ChatBody
+          selectedUser={selectedUser}
+          setSelectedUser={setSelectedUser}
+          user={user}
+          messages={messages}
+          loggedInUser={loggedInUser}
+          onlineUsers={onlineUsers}
+          socket={socket}
+          typingChats={typingChats}
+        />
+      </div>
     </div>
   );
 };
