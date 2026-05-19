@@ -38,7 +38,7 @@ const Login = () => {
   if (isAuth) navigate("/");
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-900">
+    <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
       <div className="max-w-md w-full">
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-8">
           <div className="text-center mb-8 ">
