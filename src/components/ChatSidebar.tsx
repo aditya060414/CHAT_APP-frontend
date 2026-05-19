@@ -48,9 +48,9 @@ const ChatSidebar = ({
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <aside className="h-full">
+    <aside className="h-full w-full">
       <div
-        className={`fixed z-20 sm:static top-0 left-0 h-full w-[300px] sm:w-full bg-[#13161f] border-r border-[#1f2230] transform ${isModal ? "translate-x-0" : "-translate-x-full"} sm:translate-x-0 transition-transform duration-300 flex flex-col text-gray-100`}
+        className="h-full w-full bg-[#13161f] flex flex-col text-gray-100"
       >
         {/* header */}
         <div className="flex relative py-6 px-4 gap-4 justify-center items-center border-b border-[#1f2230]">
@@ -66,12 +66,6 @@ const ChatSidebar = ({
           <div className="flex justify-end gap-2 flex-shrink-0">
             <button className="flex w-10 h-10 justify-center items-center rounded-lg hover:bg-[#4f46e5] text-gray-400 hover:text-white transition-colors border-none">
               <MessageCirclePlus size={20} />
-            </button>
-            <button
-              className="sm:hidden flex bg-[#0f1117] w-10 h-10 justify-center items-center rounded-lg hover:bg-red-600 text-gray-400 hover:text-white transition-colors border border-[#1f2230]"
-              onClick={() => setIsModal(false)}
-            >
-              <X size={20} />
             </button>
           </div>
         </div>
