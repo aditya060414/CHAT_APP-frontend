@@ -13,10 +13,7 @@ import {
   LogOut,
   Paperclip,
   FileText,
-  Download,
-  Eye,
-  FileSpreadsheet,
-  FileType,
+  ArrowLeft,
 } from "lucide-react";
 import type { User } from "../context/AppContext";
 import type { Message } from "../chat/ChatPage";
@@ -53,7 +50,6 @@ const ChatBody = ({
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [sending, setSending] = useState(false);
   const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
-  const [docPreviewUrl, setDocPreviewUrl] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -196,7 +192,16 @@ const ChatBody = ({
         <>
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 bg-[#13161f] border-b border-[#1f2230]">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Mobile Back Button */}
+              <button
+                onClick={() => setSelectedUser(null)}
+                className="md:hidden p-2 -ml-2 text-gray-400 hover:text-gray-100 hover:bg-[#1a1d29] rounded-lg transition-all"
+                title="Back to chats"
+              >
+                <ArrowLeft size={20} />
+              </button>
+
               <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
                 <UserCircle size={24} />
               </div>
@@ -255,144 +260,74 @@ const ChatBody = ({
 
           {/* Message Body */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4 chat-scroll">
-            {messages === null ? (
-              <div className="flex h-full items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#4f46e5]"></div>
-              </div>
-            ) : processedMessages.length > 0 ? (
-              processedMessages.map((msg, idx) => (
+            {processedMessages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}
+              >
                 <div
-                  key={idx}
-                  className={`flex ${msg.isMine ? "justify-end" : "justify-start"}`}
+                  className={`max-w-[75%] px-4 py-3 flex flex-col gap-1 shadow-sm ${
+                    msg.isMine
+                      ? "bg-[#4a41f0] text-white rounded-2xl rounded-br-sm"
+                      : "bg-[#1f223057] text-gray-100 rounded-2xl rounded-bl-sm border border-[#2a2d3d]"
+                  }`}
                 >
+                  {msg.messageType === "image" && msg.image && (
+                    <img
+                      src={msg.image.url}
+                      alt="sent image"
+                      className="max-w-[280px] rounded-xl mb-1 cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => setImageModalUrl(msg.image!.url)}
+                    />
+                  )}
+                  {msg.messageType === "video" && msg.video && (
+                    <video
+                      src={msg.video.url}
+                      controls
+                      className="max-w-[280px] rounded-xl mb-1"
+                    />
+                  )}
+                  {msg.messageType === "file" && msg.file && (
+                    <a
+                      href={msg.file.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 bg-black/20 rounded-lg px-3 py-2 mb-1 hover:bg-black/30 transition-colors"
+                    >
+                      <FileText size={20} className="flex-shrink-0" />
+                      <span className="text-sm truncate max-w-[200px]">{msg.file.name}</span>
+                    </a>
+                  )}
+                  {msg.text && (
+                    <p className="leading-relaxed whitespace-pre-wrap text-[15px]">
+                      {msg.text}
+                    </p>
+                  )}
                   <div
-                    className={`max-w-[75%] px-4 py-3 flex flex-col gap-1 shadow-sm ${
-                      msg.isMine
-                        ? "bg-[#5e59bd15] text-white rounded-2xl rounded-br-sm"
-                        : "bg-[#1f223057] text-gray-100 rounded-2xl rounded-bl-sm border border-[#2a2d3d]"
+                    className={`flex items-center gap-1 text-[11px] font-medium self-end ${
+                      msg.isMine ? "text-indigo-200" : "text-gray-400"
                     }`}
                   >
-                    {msg.messageType === "image" && msg.image && (
-                      <img
-                        src={msg.image.url}
-                        alt="sent image"
-                        className="max-w-[280px] rounded-xl mb-1 cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => setImageModalUrl(msg.image!.url)}
-                      />
-                    )}
-                    {msg.messageType === "video" && msg.video && (
-                      <video
-                        src={msg.video.url}
-                        controls
-                        className="max-w-[280px] rounded-xl mb-1"
-                      />
-                    )}
-                    {msg.messageType === "file" && msg.file && (() => {
-                      const mime = msg.file.mimeType || "";
-                      const isOfficeDoc = mime.includes("word") || mime.includes("excel") || mime.includes("sheet") || mime.includes("presentation") || mime.includes("powerpoint");
-                      const isPreviewable = mime === "application/pdf" || mime.startsWith("text/") || isOfficeDoc;
-                      const FileIcon = mime.includes("sheet") || mime.includes("excel")
-                        ? FileSpreadsheet
-                        : mime.includes("word")
-                          ? FileType
-                          : FileText;
-
-                      const handleDownload = async () => {
-                        try {
-                          const resp = await fetch(msg.file!.url);
-                          const blob = await resp.blob();
-                          const blobUrl = URL.createObjectURL(blob);
-                          const a = document.createElement("a");
-                          a.href = blobUrl;
-                          a.download = msg.file!.name;
-                          a.click();
-                          URL.revokeObjectURL(blobUrl);
-                        } catch {
-                          window.open(msg.file!.url, "_blank");
-                        }
-                      };
-
-                      return (
-                        <div className="flex flex-col gap-2 bg-black/20 rounded-xl px-3 py-3 mb-1 min-w-[220px] max-w-[280px]">
-                          {/* File info row */}
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                              <FileIcon size={20} className="text-indigo-400" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{msg.file.name}</p>
-                              <p className="text-xs text-gray-400 mt-0.5 uppercase">
-                                {msg.file.name.split(".").pop()}
-                              </p>
-                            </div>
-                          </div>
-                          {/* Action buttons */}
-                          <div className="flex gap-2">
-                            {isPreviewable && (
-                              <button
-                                onClick={() => {
-                                  if (isOfficeDoc) {
-                                    setDocPreviewUrl(`https://docs.google.com/viewer?url=${encodeURIComponent(msg.file!.url)}&embedded=true`);
-                                  } else {
-                                    setDocPreviewUrl(msg.file!.url);
-                                  }
-                                }}
-                                className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-lg py-1.5 text-xs font-medium transition-colors"
-                              >
-                                <Eye size={13} />
-                                Preview
-                              </button>
-                            )}
-                            <button
-                              onClick={handleDownload}
-                              className="flex-1 flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-gray-200 rounded-lg py-1.5 text-xs font-medium transition-colors"
-                            >
-                              <Download size={13} />
-                              Download
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    {msg.text && (
-                      <p className="leading-relaxed whitespace-pre-wrap text-[15px]">
-                        {msg.text}
-                      </p>
-                    )}
-                    <div
-                      className={`flex items-center gap-1 text-[11px] font-medium self-end ${
-                        msg.isMine ? "text-indigo-200" : "text-gray-400"
-                      }`}
-                    >
-                      <span>
-                        {msg.status === "seen" && msg.seenAt 
-                          ? new Date(msg.seenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-                          : msg.time}
+                    <span>
+                      {msg.status === "seen" && msg.seenAt 
+                        ? new Date(msg.seenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                        : msg.time}
+                    </span>
+                    {msg.isMine && (
+                      <span className="ml-0.5 flex items-center">
+                        {(msg.status === "seen" || msg.seen) ? (
+                          <CheckCheck size={14} className="text-blue-500" />
+                        ) : msg.status === "delivered" || (msg.status === "sent" && selectedUser && onlineUsers?.includes(selectedUser)) ? (
+                          <CheckCheck size={14} className="text-indigo-300" />
+                        ) : (
+                          <Check size={14} className="text-indigo-200" />
+                        )}
                       </span>
-                      {msg.isMine && (
-                        <span className="ml-0.5 flex items-center">
-                          {(msg.status === "seen" || msg.seen) ? (
-                            <CheckCheck size={14} className="text-blue-400" />
-                          ) : msg.status === "delivered" || (msg.status === "sent" && selectedUser && onlineUsers?.includes(selectedUser)) ? (
-                            <CheckCheck size={14} className="text-indigo-300" />
-                          ) : (
-                            <Check size={14} className="text-indigo-200" />
-                          )}
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center text-center text-gray-500">
-                <div className="w-16 h-16 rounded-2xl bg-[#13161f] border border-[#1f2230] flex items-center justify-center mb-4 text-[#4f46e5]">
-                  <MessageSquareDashed size={32} />
-                </div>
-                <p className="text-gray-200 font-medium mb-1">No messages yet</p>
-                <p className="text-sm">Say hi to start the conversation!</p>
               </div>
-            )}
+            ))}
             <div ref={bottomRef} />
           </div>
 
@@ -514,7 +449,6 @@ const ChatBody = ({
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                multiple
                 accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain"
                 className="hidden"
               />
@@ -534,7 +468,7 @@ const ChatBody = ({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    if (message.trim() || selectedFiles.length > 0) {
+                    if (message.trim() || selectedFiles) {
                       handleSendMessage();
                     }
                   }
@@ -542,7 +476,7 @@ const ChatBody = ({
               />
               <button
                 className="p-3 bg-[#4f46e5] text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                disabled={(!message.trim() && selectedFiles.length === 0) || sending}
+                disabled={(!message.trim() && !selectedFiles) || sending}
                 onClick={handleSendMessage}
               >
                 <Send size={20} />
@@ -571,50 +505,20 @@ const ChatBody = ({
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
           onClick={() => setImageModalUrl(null)}
         >
-          {/* Close button — fixed top-right corner */}
-          <button
-            className="fixed top-4 right-4 w-9 h-9 bg-[#1a1d29] border border-[#2a2d3d] rounded-full flex items-center justify-center text-gray-300 hover:text-white hover:bg-red-500/80 transition-all z-60"
-            onClick={() => setImageModalUrl(null)}
-          >
-            <X size={16} />
-          </button>
-
           <div
-            className="max-w-[90vw] max-h-[90vh]"
+            className="relative max-w-[90vw] max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
+            <button
+              className="absolute -top-3 -right-3 w-8 h-8 bg-[#1a1d29] border border-[#2a2d3d] rounded-full flex items-center justify-center text-gray-300 hover:text-white hover:bg-red-500/80 transition-all z-10"
+              onClick={() => setImageModalUrl(null)}
+            >
+              <X size={15} />
+            </button>
             <img
               src={imageModalUrl}
               alt="Full preview"
               className="max-w-[90vw] max-h-[90vh] rounded-2xl object-contain shadow-2xl"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Document Preview Modal */}
-      {docPreviewUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          onClick={() => setDocPreviewUrl(null)}
-        >
-          {/* Close button — fixed top-right corner */}
-          <button
-            className="fixed top-4 right-4 w-9 h-9 bg-[#1a1d29] border border-[#2a2d3d] rounded-full flex items-center justify-center text-gray-300 hover:text-white hover:bg-red-500/80 transition-all z-60"
-            onClick={() => setDocPreviewUrl(null)}
-          >
-            <X size={16} />
-          </button>
-
-          <div
-            className="w-[90vw] h-[90vh] bg-[#13161f] rounded-2xl overflow-hidden border border-[#1f2230]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <iframe
-              src={docPreviewUrl}
-              className="w-full h-full"
-              frameBorder="0"
-              title="Document Preview"
             />
           </div>
         </div>
