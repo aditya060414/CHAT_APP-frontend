@@ -54,6 +54,8 @@ const ChatBody = ({
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prevSelectedUserRef = useRef<string | null>(null);
+  const isInitialLoadRef = useRef(true);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -155,7 +157,21 @@ const ChatBody = ({
     );
   }, [messages, loggedInUser]);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (selectedUser !== prevSelectedUserRef.current) {
+      isInitialLoadRef.current = true;
+      prevSelectedUserRef.current = selectedUser;
+    }
+  }, [selectedUser]);
+
+  useEffect(() => {
+    if (messages) {
+      if (isInitialLoadRef.current) {
+        bottomRef.current?.scrollIntoView({ behavior: "auto" });
+        isInitialLoadRef.current = false;
+      } else {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }
   }, [messages]);
 
   const handleTyping = (value: string) => {
@@ -309,9 +325,7 @@ const ChatBody = ({
                     }`}
                   >
                     <span>
-                      {msg.status === "seen" && msg.seenAt 
-                        ? new Date(msg.seenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-                        : msg.time}
+                      {msg.time}
                     </span>
                     {msg.isMine && (
                       <span className="ml-0.5 flex items-center">
