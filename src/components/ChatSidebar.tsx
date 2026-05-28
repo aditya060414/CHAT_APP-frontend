@@ -1,18 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import type { User } from "../context/AppContext";
 
-import {
-  UserRound,
-  X,
-  MessageCirclePlus,
-  Search,
-  UserCircle,
-  LogOut,
-  Settings,
-  MessageCircle,
-  Check,
-  CheckCheck,
-} from "lucide-react";
+import SidebarHeader from "./SidebarHeader";
+import SidebarSearch from "./SidebarSearch";
+import SidebarContent from "./SidebarContent";
+import SidebarFooter from "./SidebarFooter";
 
 interface ChatSidebarProps {
   isModal: boolean;
@@ -46,299 +38,96 @@ const ChatSidebar = ({
   typingChats,
 }: ChatSidebarProps) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [userSearch, setUserSearch] = useState(false);
+
+  const searchRef = useRef<HTMLDivElement>(null);
+  const toggleButtonRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleToggleSearch = () => {
+    setUserSearch((prev) => {
+      const nextState = !prev;
+      if (!nextState) {
+        setSearchQuery("");
+      }
+      return nextState;
+    });
+  };
+
+  // handle outside click and close the search bar
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        userSearch &&
+        searchRef.current &&
+        !searchRef.current.contains(e.target as Node) &&
+        toggleButtonRef.current &&
+        !toggleButtonRef.current.contains(e.target as Node)
+      ) {
+        setUserSearch(false);
+        setSearchQuery("");
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [userSearch]);
+
+  // handle smart focus on search bar input
+  useEffect(() => {
+    if (userSearch) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [userSearch]);
 
   return (
     <aside className="h-full w-full">
-      <div
-        className="h-full w-full bg-[#13161f] flex flex-col text-gray-100"
-      >
+      <div className="h-full w-full bg-[#13161f] flex flex-col text-gray-100">
         {/* header */}
-        <div className="flex relative py-6 px-4 gap-4 justify-center items-center border-b border-[#1f2230]">
-          <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex justify-center items-center border border-indigo-500/30 flex-shrink-0">
-            <UserRound size={24} />
-          </div>
-          <div className="flex flex-col flex-1 min-w-0">
-            <span className="text-lg font-semibold truncate">
-              {loggedInUser?.name || "Username"}
-            </span>
-            <span className="text-xs text-indigo-400 font-medium">Online</span>
-          </div>
-          <div className="flex justify-end gap-2 flex-shrink-0">
-            <button className="flex w-10 h-10 justify-center items-center rounded-lg hover:bg-[#4f46e5] text-gray-400 hover:text-white transition-colors border-none">
-              <MessageCirclePlus size={20} />
-            </button>
-          </div>
-        </div>
+        <SidebarHeader
+          loggedInUser={loggedInUser}
+          userSearch={userSearch}
+          onToggleSearch={handleToggleSearch}
+          toggleButtonRef={toggleButtonRef}
+        />
 
-        {/* search bar, chats, and all users*/}
-        <div className="flex flex-col relative w-full border-b border-[#1f2230] pb-4">
-          <div className="flex relative p-4 w-full justify-center items-center">
-            <Search className="absolute left-7 text-gray-500" size={18} />
-            <input
-              type="search"
-              placeholder="Search chats..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-[#0f1117] text-gray-100 placeholder-gray-500 w-full pl-10 pr-10 h-11 text-sm rounded-xl appearance-none border border-[#1f2230] focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] outline-none transition-all"
-            />
-            {searchQuery && (
-              <button
-                className="absolute right-7 text-gray-400 hover:text-gray-200"
-                onClick={() => setSearchQuery("")}
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
+        {/* search bar & dropdown overlay */}
+        <SidebarSearch
+          userSearch={userSearch}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          users={users}
+          loggedInUser={loggedInUser}
+          createChat={createChat}
+          onlineUsers={onlineUsers}
+          searchRef={searchRef}
+          inputRef={inputRef}
+        />
 
-          {searchQuery && (
-            <div className="absolute top-16 left-4 right-4 mt-1 max-h-60 overflow-y-auto bg-[#13161f] border border-[#1f2230] rounded-lg shadow-xl z-30 flex flex-col [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              {users
-                ?.filter(
-                  (u) =>
-                    u._id !== loggedInUser?._id &&
-                    u.name.toLowerCase().includes(searchQuery.toLowerCase()),
-                )
-                .map((u) => (
-                  <button
-                    key={u._id}
-                    className="cursor-pointer w-full text-left hover:bg-[#1a1d29] transition-colors border-b border-[#1f2230] last:border-0"
-                    onClick={() => {
-                      createChat(u);
-                      setSearchQuery("");
-                    }}
-                  >
-                    <div className="flex relative p-3 gap-3 items-center">
-                      <div className="relative flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                          <UserCircle size={24} />
-                        </div>
-                        {onlineUsers?.includes(u._id) && (
-                          <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#13161f] rounded-full"></div>
-                        )}
-                      </div>
-                      <div className="text-sm font-medium text-gray-200">
-                        {u.name}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-            </div>
-          )}
+        {/* chats and all users navigation + lists */}
+        <SidebarContent
+          toggleChats={toggleChats}
+          setToggleChats={setToggleChats}
+          chats={chats}
+          users={users}
+          loggedInUser={loggedInUser}
+          selectedUser={selectedUser}
+          setSelectedUser={setSelectedUser}
+          onlineUsers={onlineUsers}
+          typingChats={typingChats}
+          createChat={createChat}
+        />
 
-          <div className="flex gap-3 px-4 mt-1">
-            <button
-              className={`flex-1 h-9 rounded-lg text-sm font-medium transition-colors ${toggleChats === "chats" ? "bg-[#4f46e5] text-white" : "bg-[#0f1117] text-gray-400 hover:bg-[#1a1d29] border border-[#1f2230]"}`}
-              onClick={() => setToggleChats("chats")}
-            >
-              Chats
-            </button>
-            <button
-              className={`flex-1 h-9 rounded-lg text-sm font-medium transition-colors ${toggleChats === "allUsers" ? "bg-[#4f46e5] text-white" : "bg-[#0f1117] text-gray-400 hover:bg-[#1a1d29] border border-[#1f2230]"}`}
-              onClick={() => setToggleChats("allUsers")}
-            >
-              All Users
-            </button>
-          </div>
-        </div>
-
-        {/* content- RECENT */}
-        <div className="flex flex-col flex-1 overflow-y-auto bg-[#13161f] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <div className="px-4 py-3 sticky top-0 bg-[#13161f] z-10">
-            <span className="text-xs uppercase tracking-wider text-gray-500 font-semibold">
-              {toggleChats === "chats" ? "Recent" : "All Users"}
-            </span>
-          </div>
-
-          {toggleChats === "chats" ? (
-            chats && chats.length > 0 ? (
-              <div className="flex flex-col pb-2">
-                {chats.map((chat) => {
-                  const latestMessage = chat.chat.latestMessage;
-                  const isSelected = selectedUser === chat.chat._id;
-                  const unseenCount = chat.chat.unseenCount;
-
-                  const formatTime = (timestamp: string) => {
-                    const now = new Date();
-                    const past = new Date(timestamp);
-                    const diffMs = now.getTime() - past.getTime();
-                    const diffMins = Math.floor(diffMs / (1000 * 60));
-
-                    if (diffMins < 1) return "Just now";
-                    if (diffMins < 60) return `${diffMins}m`;
-
-                    const diffHours = Math.floor(diffMins / 60);
-                    if (diffHours < 24) return `${diffHours}h`;
-
-                    const diffDays = Math.floor(diffHours / 24);
-                    return `${diffDays}d`;
-                  };
-
-                  return (
-                    <button
-                      key={chat.chat._id}
-                      onClick={() => setSelectedUser(chat.chat._id)}
-                      className="w-full"
-                    >
-                      <div
-                        className={`flex items-center gap-3 px-4 py-3 mx-2 rounded-xl transition-colors ${isSelected ? "bg-[#1a1d29] border border-[#1f2230]" : "hover:bg-[#1a1d29] border border-transparent"}`}
-                      >
-                        {/* Avatar */}
-                        <div className="relative flex-shrink-0">
-                          <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                            <UserCircle size={28} />
-                          </div>
-                          {/* online status */}
-                          {onlineUsers?.includes(
-                            chat.user?._id || chat.user?.user?._id,
-                          ) && (
-                            <div className="absolute -top-0 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-[#13161f] rounded-full"></div>
-                          )}
-                        </div>
-
-                        {/* username and latest message */}
-                        <div className="flex-1 min-w-0 text-left">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-[15px] font-medium text-gray-100 truncate pr-2">
-                              {chat.user?.name ||
-                                chat.user?.user?.name ||
-                                "Unknown"}
-                            </span>
-                            <span
-                              className={`text-xs whitespace-nowrap ${unseenCount > 0 ? "text-indigo-400 font-medium" : "text-gray-500"}`}
-                            >
-                              {latestMessage
-                                ? formatTime(chat.chat.updatedAt)
-                                : ""}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            {typingChats && typingChats[chat.chat._id]?.length > 0 && !isSelected ? (
-                              <span className="text-sm truncate pr-2 text-indigo-400 font-medium italic">
-                                typing...
-                              </span>
-                            ) : (
-                              <span
-                                className={`text-sm truncate pr-2 flex items-center gap-1 ${unseenCount > 0 ? "text-gray-200 font-medium" : "text-gray-500"}`}
-                              >
-                                {latestMessage?.sender === loggedInUser?._id && (
-                                  <span className="flex items-center flex-shrink-0">
-                                    {latestMessage.status === "seen" ? (
-                                      <CheckCheck size={14} className="text-blue-400" />
-                                    ) : latestMessage.status === "delivered" || (latestMessage.status === "sent" && onlineUsers?.includes(chat.user?._id || chat.user?.user?._id)) ? (
-                                      <CheckCheck size={14} className="text-gray-400" />
-                                    ) : (
-                                      <Check size={14} className="text-gray-400" />
-                                    )}
-                                  </span>
-                                )}
-                                <span className="truncate">
-                                  {latestMessage?.text
-                                    ? latestMessage.text
-                                    : latestMessage?.image
-                                      ? "📷 Image"
-                                      : "No messages yet"}
-                                </span>
-                              </span>
-                            )}
-                            {unseenCount > 0 && (
-                              <span className="flex-shrink-0 min-w-[20px] h-[20px] px-1.5 rounded-full bg-[#4f46e5] flex items-center justify-center text-[10px] font-bold text-white">
-                                {unseenCount}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-col flex-1 items-center justify-center px-4 text-center pb-10">
-                <div className="w-16 h-16 bg-[#1a1d29] border border-[#1f2230] text-[#4f46e5] flex rounded-2xl justify-center items-center mb-4">
-                  <MessageCircle size={32} />
-                </div>
-                <p className="text-gray-200 font-medium mb-1">No chats yet</p>
-                <p className="text-sm text-gray-500 max-w-[200px]">
-                  Start a new conversation and connect with others.
-                </p>
-              </div>
-            )
-          ) : (
-            users && users.filter(u => u._id !== loggedInUser?._id).length > 0 ? (
-              <div className="flex flex-col pb-2">
-                {users
-                  .filter((u) => u._id !== loggedInUser?._id)
-                  .map((u) => {
-                    const isOnline = onlineUsers?.includes(u._id);
-                    return (
-                      <button
-                        key={u._id}
-                        onClick={() => createChat(u)}
-                        className="w-full"
-                      >
-                        <div className="flex items-center gap-3 px-4 py-3 mx-2 rounded-xl hover:bg-[#1a1d29] transition-colors">
-                          <div className="relative flex-shrink-0">
-                            <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                              <UserCircle size={28} />
-                            </div>
-                            {isOnline && (
-                              <div className="absolute -top-0 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-[#13161f] rounded-full"></div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0 text-left">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-[15px] font-medium text-gray-100 truncate pr-2">
-                                {u.name}
-                              </span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isOnline ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}`}>
-                                {isOnline ? "Online" : "Offline"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-              </div>
-            ) : (
-              <div className="flex flex-col flex-1 items-center justify-center px-4 text-center pb-10">
-                <div className="w-16 h-16 bg-[#1a1d29] border border-[#1f2230] text-[#4f46e5] flex rounded-2xl justify-center items-center mb-4">
-                  <UserCircle size={32} />
-                </div>
-                <p className="text-gray-200 font-medium mb-1">No users found</p>
-                <p className="text-sm text-gray-500 max-w-[200px]">
-                  There are no other users registered yet.
-                </p>
-              </div>
-            )
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-[#1f2230] bg-[#13161f] mt-auto flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 cursor-pointer group min-w-0">
-              <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex justify-center items-center group-hover:bg-indigo-500/30 transition-colors flex-shrink-0">
-                <UserRound size={16} />
-              </div>
-              <span className="text-sm font-medium text-gray-300 group-hover:text-gray-100 truncate">
-                {loggedInUser?.name || "Profile"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#4f46e5] hover:bg-[#1a1d29] transition-all">
-                <Settings size={18} />
-              </button>
-              <button
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-all"
-                onClick={handleLogout}
-              >
-                <LogOut size={18} />
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* footer */}
+        <SidebarFooter
+          loggedInUser={loggedInUser}
+          handleLogout={handleLogout}
+        />
       </div>
     </aside>
   );
