@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -34,13 +34,19 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isAuth && !userLoading) {
+      navigate("/");
+    }
+  }, [isAuth, userLoading, navigate]);
+
   if (userLoading) return <Loading />;
-  if (isAuth) navigate("/");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
       <div className="max-w-md w-full">
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-8">
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 sm:p-8">
           <div className="text-center mb-8 ">
             <div className="mx-auto w-20 h-20 bg-blue-500 rounded-lg flex justify-center items-center mb-6">
               <Mail size={40} className="text-white" />
