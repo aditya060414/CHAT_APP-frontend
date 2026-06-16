@@ -14,6 +14,7 @@ export interface User {
   _id: string;
   name: string;
   email: string;
+  avatar?: string;
 }
 
 export interface Chat {
@@ -77,6 +78,7 @@ export const AppProvider: React.FC<AppProviderProp> = ({ children }) => {
       setLoading(false);
     } catch (error) {
       console.log(error);
+      setLoading(false);
     }
   }
 
