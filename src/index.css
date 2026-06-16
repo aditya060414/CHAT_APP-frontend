@@ -28,3 +28,42 @@ input[type="search"]::-webkit-search-cancel-button {
     background-color: #6366f1;
   }
 }
+
+:root {
+  --accent-color: #4f46e5;
+  --accent-hover: #6366f1;
+  --accent-glow: rgba(79, 70, 229, 0.15);
+  --accent-glow-strong: rgba(79, 70, 229, 0.3);
+}
+
+.bg-\[\#4f46e5\], .bg-indigo-500, .bg-indigo-600 {
+  background-color: var(--accent-color) !important;
+}
+.hover\:bg-\[\#4f46e5\]:hover, .hover\:bg-indigo-600:hover, .hover\:bg-indigo-700:hover, .hover\:bg-indigo-500\/10:hover {
+  background-color: var(--accent-hover) !important;
+}
+.text-indigo-400, .text-indigo-500 {
+  color: var(--accent-color) !important;
+}
+.hover\:text-indigo-400:hover, .hover\:text-indigo-600:hover {
+  color: var(--accent-hover) !important;
+}
+.border-indigo-500\/30, .border-indigo-500\/20 {
+  border-color: var(--accent-glow-strong) !important;
+}
+.bg-indigo-500\/20, .bg-indigo-500\/10 {
+  background-color: var(--accent-glow) !important;
+}
+.hover\:bg-indigo-500\/30:hover {
+  background-color: var(--accent-glow-strong) !important;
+}
+
+.bg-pattern-dots {
+  background-image: radial-gradient(var(--accent-glow-strong) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
+.bg-pattern-grid {
+  background-image: linear-gradient(to right, var(--accent-glow-strong) 1px, transparent 1px),
+                    linear-gradient(to bottom, var(--accent-glow-strong) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
