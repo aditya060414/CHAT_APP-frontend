@@ -75,9 +75,17 @@ const SidebarSearch = ({
                 >
                   <div className="flex relative p-3 gap-3 items-center">
                     <div className="relative flex-shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                        <UserCircle size={24} />
-                      </div>
+                      {u.avatar ? (
+                        <img
+                          src={u.avatar}
+                          alt={u.name}
+                          className="w-10 h-10 rounded-full object-cover border border-indigo-500/30"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                          <UserCircle size={24} />
+                        </div>
+                      )}
                       {onlineUsers?.includes(u._id) && (
                         <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#13161f] rounded-full"></div>
                       )}
