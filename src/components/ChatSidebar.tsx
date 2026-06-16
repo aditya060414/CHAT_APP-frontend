@@ -23,8 +23,8 @@ interface ChatSidebarProps {
 }
 
 const ChatSidebar = ({
-  isModal,
-  setIsModal,
+  isModal: _isModal,
+  setIsModal: _setIsModal,
   toggleChats,
   setToggleChats,
   users,
@@ -39,7 +39,6 @@ const ChatSidebar = ({
 }: ChatSidebarProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [userSearch, setUserSearch] = useState(false);
-
   const searchRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +52,8 @@ const ChatSidebar = ({
       return nextState;
     });
   };
+
+  
 
   // handle outside click and close the search bar
   useEffect(() => {
