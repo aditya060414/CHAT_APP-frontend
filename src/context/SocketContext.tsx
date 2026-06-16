@@ -8,7 +8,6 @@ import {
 } from "react";
 import { UseAppData } from "./AppContext";
 import { chat_Services } from "../API/API";
-import { Users } from "lucide-react";
 
 interface SocketContextType {
   socket: Socket | null;
