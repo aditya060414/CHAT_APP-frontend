@@ -100,9 +100,17 @@ const SidebarContent = ({
                     >
                       {/* Avatar */}
                       <div className="relative flex-shrink-0">
-                        <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                          <UserCircle size={28} />
-                        </div>
+                        {chat.user?.avatar || chat.user?.user?.avatar ? (
+                          <img
+                            src={chat.user?.avatar || chat.user?.user?.avatar}
+                            alt="Avatar"
+                            className="w-12 h-12 rounded-full object-cover border border-indigo-500/30"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+                            <UserCircle size={28} />
+                          </div>
+                        )}
                         {/* online status */}
                         {onlineUsers?.includes(
                           chat.user?._id || chat.user?.user?._id,
@@ -217,9 +225,17 @@ const SidebarContent = ({
                   >
                     <div className="flex items-center gap-3 px-4 py-3 mx-2 rounded-xl hover:bg-[#1a1d29] transition-colors">
                       <div className="relative flex-shrink-0">
-                        <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                          <UserCircle size={28} />
-                        </div>
+                        {u.avatar ? (
+                          <img
+                            src={u.avatar}
+                            alt={u.name}
+                            className="w-12 h-12 rounded-full object-cover border border-indigo-500/30"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+                            <UserCircle size={28} />
+                          </div>
+                        )}
                         {isOnline && (
                           <div className="absolute -top-0 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-[#13161f] rounded-full"></div>
                         )}
