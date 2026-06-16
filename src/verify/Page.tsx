@@ -130,13 +130,18 @@ const VerifyOtp = () => {
     navigate("/login");
   };
 
+  useEffect(() => {
+    if (isAuth && !userLoading) {
+      navigate("/");
+    }
+  }, [isAuth, userLoading, navigate]);
+
   if (userLoading) return <Loading />;
-  if (isAuth) navigate("/");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4">
       <div className="max-w-md w-full">
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-8">
+        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 sm:p-8">
           <button
             onClick={handleBackClick}
             className="flex items-center gap-2 text-gray-400 hover:text-gray-200 transition"
@@ -161,7 +166,7 @@ const VerifyOtp = () => {
               <label className="block text-sm font-medium text-gray-300 mb-4 text-center">
                 Enter your 6-digit OTP
               </label>
-              <div className="flex justify-center in-checked: space-x-3">
+              <div className="flex justify-center space-x-2 sm:space-x-3">
                 {otp.map((digit, index) => {
                   return (
                     <input
@@ -177,7 +182,7 @@ const VerifyOtp = () => {
                       onPaste={(e) =>
                         index === 0 ? handlePasteData(e) : undefined
                       }
-                      className="w-12 h-12 text-center text-xl font-bold borde-2 border-gray-600 bg-gray-700 rounded-lg text-white"
+                      className="w-10 h-10 sm:w-12 sm:h-12 text-center text-lg sm:text-xl font-bold border-2 border-gray-600 bg-gray-700 rounded-lg text-white"
                     />
                   );
                 })}
