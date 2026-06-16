@@ -20,7 +20,7 @@ import type { Message } from "../chat/ChatPage";
 import toast from "react-hot-toast";
 import { chat_Services } from "../API/API";
 import axios from "axios";
-import { io, Socket } from "socket.io-client";
+import { Socket } from "socket.io-client";
 
 interface ChatBodyProps {
   selectedUser: string | null;
@@ -43,6 +43,8 @@ const ChatBody = ({
   onlineUsers,
   socket,
 }: ChatBodyProps) => {
+  const wallpaper = localStorage.getItem("chatWallpaper") || "none";
+  const fontSize = localStorage.getItem("chatFontSize") || "medium";
   const [message, setMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -136,8 +138,9 @@ const ChatBody = ({
           headers: { Authorization: `Bearer ${token}` },
         });
       }
-    } catch (error) {
-      toast.error("Message not sent.");
+    } catch (error: any) {
+      const serverMessage = error.response?.data?.message || "Message not sent.";
+      toast.error(serverMessage);
     } finally {
       setMessage("");
       clearFiles();
@@ -207,7 +210,7 @@ const ChatBody = ({
       {selectedUser ? (
         <>
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 bg-[#13161f] border-b border-[#1f2230]">
+          <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 bg-[#13161f] border-b border-[#1f2230]">
             <div className="flex items-center gap-3">
               {/* Mobile Back Button */}
               <button
@@ -218,9 +221,17 @@ const ChatBody = ({
                 <ArrowLeft size={20} />
               </button>
 
-              <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                <UserCircle size={24} />
-              </div>
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name || "User"}
+                  className="w-10 h-10 rounded-full object-cover border border-indigo-500/30 flex-shrink-0"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+                  <UserCircle size={24} />
+                </div>
+              )}
               <div className="flex flex-col">
                 <span className="font-semibold text-gray-100">
                   {user?.name || "Unknown"}
@@ -275,7 +286,9 @@ const ChatBody = ({
           </div>
 
           {/* Message Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 chat-scroll">
+          <div className={`flex-1 overflow-y-auto p-4 md:p-6 space-y-4 chat-scroll ${
+            wallpaper === "dots" ? "bg-pattern-dots" : wallpaper === "grid" ? "bg-pattern-grid" : ""
+          }`}>
             {processedMessages.map((msg, idx) => (
               <div
                 key={idx}
@@ -292,7 +305,7 @@ const ChatBody = ({
                     <img
                       src={msg.image.url}
                       alt="sent image"
-                      className="max-w-[280px] rounded-xl mb-1 cursor-pointer hover:opacity-90 transition-opacity"
+                      className="max-w-full sm:max-w-[280px] rounded-xl mb-1 cursor-pointer hover:opacity-90 transition-opacity"
                       onClick={() => setImageModalUrl(msg.image!.url)}
                     />
                   )}
@@ -300,7 +313,7 @@ const ChatBody = ({
                     <video
                       src={msg.video.url}
                       controls
-                      className="max-w-[280px] rounded-xl mb-1"
+                      className="max-w-full sm:max-w-[280px] rounded-xl mb-1"
                     />
                   )}
                   {msg.messageType === "file" && msg.file && (
@@ -308,14 +321,16 @@ const ChatBody = ({
                       href={msg.file.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 bg-black/20 rounded-lg px-3 py-2 mb-1 hover:bg-black/30 transition-colors"
+                      className="flex items-center gap-2 bg-black/20 rounded-lg px-3 py-2 mb-1 hover:bg-black/30 transition-colors max-w-full"
                     >
                       <FileText size={20} className="flex-shrink-0" />
-                      <span className="text-sm truncate max-w-[200px]">{msg.file.name}</span>
+                      <span className="text-sm truncate max-w-[130px] sm:max-w-[200px]">{msg.file.name}</span>
                     </a>
                   )}
                   {msg.text && (
-                    <p className="leading-relaxed whitespace-pre-wrap text-[15px]">
+                    <p className={`leading-relaxed whitespace-pre-wrap ${
+                      fontSize === "small" ? "text-xs" : fontSize === "large" ? "text-[17px]" : "text-[15px]"
+                    }`}>
                       {msg.text}
                     </p>
                   )}
@@ -440,7 +455,13 @@ const ChatBody = ({
                     placeholder="Add a caption..."
                     className="flex-1 bg-[#1a1d29] text-gray-100 placeholder-gray-500 rounded-xl px-4 py-3 outline-none border border-[#2a2d3d] focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-all"
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") { e.preventDefault(); handleSendMessage(); }
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        const enterToSend = localStorage.getItem("enterToSend") !== "false";
+                        if (enterToSend) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }
                     }}
                   />
                   <button
@@ -480,10 +501,13 @@ const ChatBody = ({
                 placeholder="Type a message..."
                 className="flex-1 bg-[#0f1117] text-gray-100 placeholder-gray-500 rounded-lg px-4 py-3 outline-none border border-[#1f2230] focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-all"
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (message.trim() || selectedFiles) {
-                      handleSendMessage();
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    const enterToSend = localStorage.getItem("enterToSend") !== "false";
+                    if (enterToSend) {
+                      e.preventDefault();
+                      if (message.trim() || selectedFiles) {
+                        handleSendMessage();
+                      }
                     }
                   }
                 }}
