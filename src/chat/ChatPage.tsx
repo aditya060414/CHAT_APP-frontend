@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { UseAppData, type User } from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
 import Loading from "../components/Loading";
@@ -15,9 +15,9 @@ export interface Message {
   chatId: string;
   sender: string;
   text?: string;
-  image?: { url: string; publicId: string; };
-  video?: { url: string; publicId: string; };
-  file?: { url: string; publicId: string; name: string; mimeType: string; };
+  image?: { url: string; publicId: string };
+  video?: { url: string; publicId: string };
+  file?: { url: string; publicId: string; name: string; mimeType: string };
   messageType: "text" | "image" | "video" | "file";
   seen: boolean;
   status?: "sent" | "delivered" | "seen";
@@ -46,7 +46,7 @@ const ChatPage = () => {
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [toggleChats, setToggleChats] = useState("chats");
   const [typingChats, setTypingChats] = useState<Record<string, string[]>>({});
-
+ 
   useEffect(() => {
     if (!isAuth && !loading) {
       navigate("/login");
@@ -124,7 +124,7 @@ const ChatPage = () => {
 
       setChats((prevChats: any) => {
         if (!prevChats) return prevChats;
-        
+
         const updatedChats = prevChats.map((c: any) => {
           if (c.chat._id === message.chatId) {
             return {
@@ -138,17 +138,21 @@ const ChatPage = () => {
                   seenAt: message.seenAt,
                 },
                 updatedAt: message.createdAt,
-                unseenCount: message.sender !== loggedInUser?._id && selectedUser !== message.chatId 
-                  ? (c.chat.unseenCount || 0) + 1 
-                  : c.chat.unseenCount,
-              }
+                unseenCount:
+                  message.sender !== loggedInUser?._id &&
+                  selectedUser !== message.chatId
+                    ? (c.chat.unseenCount || 0) + 1
+                    : c.chat.unseenCount,
+              },
             };
           }
           return c;
         });
-        
-        return updatedChats.sort((a: any, b: any) => 
-          new Date(b.chat.updatedAt).getTime() - new Date(a.chat.updatedAt).getTime()
+
+        return updatedChats.sort(
+          (a: any, b: any) =>
+            new Date(b.chat.updatedAt).getTime() -
+            new Date(a.chat.updatedAt).getTime(),
         );
       });
     });
@@ -181,7 +185,12 @@ const ChatPage = () => {
         if (!prev) return prev;
         return prev.map((msg) => {
           if (data.messageIds.includes(msg._id)) {
-            return { ...msg, seen: true, status: "seen", seenAt: new Date().toISOString() };
+            return {
+              ...msg,
+              seen: true,
+              status: "seen",
+              seenAt: new Date().toISOString(),
+            };
           }
           return msg;
         });
@@ -197,10 +206,10 @@ const ChatPage = () => {
                 latestMessage: {
                   ...c.chat.latestMessage,
                   status: "seen",
-                  seenAt: new Date().toISOString()
+                  seenAt: new Date().toISOString(),
                 },
                 unseenCount: 0,
-              }
+              },
             };
           }
           return c;
@@ -234,10 +243,12 @@ const ChatPage = () => {
   return (
     <div className="h-screen bg-[#0f1117] text-gray-100 flex overflow-hidden">
       {/* Sidebar Container */}
-      <div className={`
+      <div
+        className={`
         ${selectedUser ? "hidden md:flex" : "flex w-full"} 
         md:w-[350px] md:flex-shrink-0 border-r border-[#1f2230] bg-[#13161f] z-20 flex-col h-full
-      `}>
+      `}
+      >
         <ChatSidebar
           isModal={isModal}
           setIsModal={setIsModal}
@@ -256,10 +267,12 @@ const ChatPage = () => {
       </div>
 
       {/* ChatBody Container */}
-      <div className={`
+      <div
+        className={`
         flex-1 h-full
         ${selectedUser ? "flex" : "hidden md:flex"}
-      `}>
+      `}
+      >
         <ChatBody
           selectedUser={selectedUser}
           setSelectedUser={setSelectedUser}
