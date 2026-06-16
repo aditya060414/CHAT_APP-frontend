@@ -17,9 +17,17 @@ const SidebarHeader = ({
 }: SidebarHeaderProps) => {
   return (
     <div className="flex relative py-6 px-4 gap-4 justify-center items-center border-b border-[#1f2230]">
-      <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex justify-center items-center border border-indigo-500/30 flex-shrink-0">
-        <UserRound size={24} />
-      </div>
+      {loggedInUser?.avatar ? (
+        <img
+          src={loggedInUser.avatar}
+          alt={loggedInUser.name || "User"}
+          className="w-12 h-12 rounded-full object-cover border border-indigo-500/30 flex-shrink-0"
+        />
+      ) : (
+        <div className="w-12 h-12 rounded-full bg-indigo-500/20 text-indigo-400 flex justify-center items-center border border-indigo-500/30 flex-shrink-0">
+          <UserRound size={24} />
+        </div>
+      )}
       <div className="flex flex-col flex-1 min-w-0">
         <span className="text-lg font-semibold truncate">
           {loggedInUser?.name || "Username"}
